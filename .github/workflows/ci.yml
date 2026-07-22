@@ -23,16 +23,92 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      - run: uv sync --frozen --all-packages
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
       - run: pnpm run typecheck
       - run: pnpm run test
-      - run: pnpm run build
+      # api-client drift gate: regenerating from the live OpenAPI must be a no-op
+      - run: make gen-api
+      - run: git diff --exit-code packages/api-client
+      - run: pnpm --filter @osaip/web build
+      # §6.5 budget: initial-route JS < 300 KB gz
+      - run: node scripts/check_bundle_size.mjs apps/web/dist
+      - run: pnpm --filter @osaip/ui build-storybook
 
-  # Slice 10 adds: e2e (compose + seed + Playwright incl. axe, mobile, visual smoke),
-  # SBOM (cyclonedx-bom + cdxgen), pip-audit + pnpm audit, license allowlist gate,
-  # bundle-size gate, OpenAPI ADR lint (vendored spectral ruleset), api-client drift gate.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: uv sync --frozen --all-packages
+      - run: pnpm install --frozen-lockfile
+      - name: Boot stack (postgres, keycloak, api, worker)
+        run: docker compose -f infra/compose/docker-compose.yml --project-name osaip up -d --build --wait postgres keycloak api worker
+      - name: Seed demo data
+        run: make seed
+        env:
+          OSAIP_DATABASE_URL: postgresql+asyncpg://osaip:osaip@localhost:5433/osaip
+      - run: pnpm --filter @osaip/web exec playwright install --with-deps chromium
+      - name: Playwright acceptance suite (spec §7 Phase 0 AC 1-7 + axe + mobile + states)
+        run: pnpm --filter @osaip/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose -f infra/compose/docker-compose.yml --project-name osaip logs --tail 100 api keycloak
+
+  supply-chain:
+    # CP-12 (ADR-0005). Image signing (cosign) activates with the first published
+    # image — Phase 0 publishes none.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: uv sync --frozen --all-packages
+      - run: pnpm install --frozen-lockfile
+      - name: SBOM (Python, CycloneDX)
+        run: uvx --from cyclonedx-bom cyclonedx-py environment .venv -o sbom-python.cdx.json
+      - name: SBOM (Node, CycloneDX)
+        run: npx --yes @cyclonedx/cdxgen@11.2.7 -t pnpm --no-recurse -o sbom-node.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sboms
+          path: "sbom-*.cdx.json"
+      - name: Dependency audit (Python)
+        run: |
+          uv export --format requirements-txt --no-emit-workspace --no-dev --all-packages > requirements-audit.txt
+          uvx pip-audit -r requirements-audit.txt --disable-pip
+      - name: Dependency audit (Node)
+        run: pnpm audit --prod --audit-level high
+      - name: License allowlist gate (spec §3.1 + ADR-0004)
+        run: uv run python scripts/check_licenses.py
+      - name: OpenAPI ADR lint (CP-14, vendored NL REST API Design Rules)
+        run: npx --yes @stoplight/spectral-cli@6.15.0 lint -r .spectral.yaml --fail-severity=error packages/api-client/openapi.json

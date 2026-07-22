@@ -31,10 +31,12 @@ Dev ports (chosen to avoid common defaults): web `5173`, api `8001`, Keycloak `8
 Postgres `5433`, SeaweedFS S3 `8333`.
 
 ```bash
+make seed     # demo project (3 members), sales_orders search ref, welcome notification
 make test     # Python + web unit/integration tests
 make lint     # ruff, mypy --strict, eslint, tsc
-make seed     # demo project + data (arrives with slice 10)
-make e2e      # Playwright acceptance suite (arrives with slice 10)
+make e2e      # Playwright acceptance suite (AC 1-7, axe, mobile, states)
+make ci       # the full local gate incl. SBOM-adjacent license/bundle/OpenAPI checks
+make gen-api  # regenerate packages/api-client from the API's OpenAPI
 ```
 
 ## Security

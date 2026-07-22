@@ -24,7 +24,7 @@
   --color-border-strong: #c6c6ca;
   --color-text: #1d1d20;
   --color-text-muted: #55555c;
-  --color-text-faint: #86868e;
+  --color-text-faint: #72727b; /* 4.8:1 on surface — AA for small text */
 
   /* Accent — violet-indigo, the single brand hue */
   --color-accent: #6e56cf;
@@ -89,7 +89,7 @@
   --color-border-strong: #43434b;
   --color-text: #ededef;
   --color-text-muted: #a3a3ac;
-  --color-text-faint: #71717a;
+  --color-text-faint: #8a8a93; /* 5.0:1 on dark surface — AA for small text */
 
   --color-accent: #7c66d9;
   --color-accent-hover: #8b77e2;
@@ -125,7 +125,7 @@
     --color-border-strong: #43434b;
     --color-text: #ededef;
     --color-text-muted: #a3a3ac;
-    --color-text-faint: #71717a;
+    --color-text-faint: #8a8a93; /* 5.0:1 on dark surface — AA for small text */
 
     --color-accent: #7c66d9;
     --color-accent-hover: #8b77e2;

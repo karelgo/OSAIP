@@ -44,7 +44,14 @@
       "enabled": true,
       "firstName": "Ada",
       "lastName": "Admin",
-      "credentials": [{ "type": "password", "value": "dev", "temporary": false }]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "id": "10000000-0000-4000-8000-000000000001"
     },
     {
       "username": "editor@osaip.dev",
@@ -53,7 +60,14 @@
       "enabled": true,
       "firstName": "Evi",
       "lastName": "Editor",
-      "credentials": [{ "type": "password", "value": "dev", "temporary": false }]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "id": "10000000-0000-4000-8000-000000000002"
     },
     {
       "username": "viewer@osaip.dev",
@@ -62,7 +76,14 @@
       "enabled": true,
       "firstName": "Vik",
       "lastName": "Viewer",
-      "credentials": [{ "type": "password", "value": "dev", "temporary": false }]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "id": "10000000-0000-4000-8000-000000000003"
     }
   ]
 }

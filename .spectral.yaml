@@ -1,0 +1,39 @@
+# OpenAPI linting against the NL REST API Design Rules (CP-14, ADR-0005).
+# Base ruleset is VENDORED + pinned (infra/spectral/adr-ruleset.yaml, fetched from
+# developer.overheid.nl) so CI never depends on a moving remote target.
+# Every override below carries a justification; removing one is a compliance decision.
+extends:
+  - ./infra/spectral/adr-ruleset.yaml
+
+rules:
+  # The ADR ruleset pins OpenAPI 3.0.x; FastAPI emits 3.1.0 (the current OAS,
+  # a superset for our purposes). Newer-than-required, not older — accepted.
+  openapi3: off
+
+  # Internal app BFF API served same-origin behind the app; TLS terminates at the
+  # reverse proxy (deployment checklist). Servers list is relative in dev.
+  servers-use-https: off
+  oas3-api-servers: off
+
+  # /core/publish-openapi: FastAPI serves /api/v1/openapi.json (non-standard path
+  # per ADR expectations of /openapi.json at API root). Documented deviation.
+  paths-open-api-json-resource-exists: off
+  paths-open-api-json-resource-has-get: off
+  paths-open-api-json-specify-cors-header: off
+
+  # CORS is deliberately absent: the BFF is same-origin only (ADR-0001); adding
+  # permissive CORS headers would weaken the cookie/CSRF posture.
+  missing-header: off
+
+  # snake_case JSON properties are this API's convention (matches the Python domain
+  # models end-to-end); ADR prefers camelCase. Recorded deviation (ADR-0005).
+  schema-camel-case: off
+  property-casing: off
+
+  # Auth endpoints and imperative inbox actions use verb paths by design
+  # (/auth/login, /notifications/{id}/read) — see ADR-0005 CP-14 notes.
+  paths-kebab-case: warn
+
+  # Contact info: placeholder until the project has a public home.
+  info-contact: warn
+  info-contact-fields-exist: warn

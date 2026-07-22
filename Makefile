@@ -31,13 +31,16 @@ lint-web:
 	pnpm run lint
 	pnpm run typecheck
 
-## e2e: Playwright acceptance suite against the built web app (lands in slice 10)
+## e2e: Playwright acceptance suite against built output (stops the dev web container)
 e2e:
-	@echo "e2e suite lands in slice 10 (Playwright against built output)"; exit 1
+	$(COMPOSE) up -d --wait postgres keycloak api worker
+	$(COMPOSE) stop web
+	OSAIP_DATABASE_URL=postgresql+asyncpg://osaip:osaip@localhost:5433/osaip uv run python -m osaip_api.seed
+	pnpm --filter @osaip/web e2e
 
-## seed: demo data (project, members, object_refs, notification) (lands in slice 10)
+## seed: demo data (project, members, object_refs, notification); idempotent
 seed:
-	@echo "seed lands in slice 10"; exit 1
+	uv run python -m osaip_api.seed
 
 ## gen-api: export openapi.json and regenerate packages/api-client (§3.2: no hand-written fetch)
 gen-api:
@@ -47,3 +50,10 @@ gen-api:
 
 ## ci: the full local gate (mirrors .github/workflows/ci.yml)
 ci: lint test
+	$(MAKE) gen-api
+	git diff --exit-code packages/api-client
+	pnpm --filter @osaip/web build
+	node scripts/check_bundle_size.mjs apps/web/dist
+	uv run python scripts/check_licenses.py
+	npx --yes @stoplight/spectral-cli@6.15.0 lint -r .spectral.yaml --fail-severity=error packages/api-client/openapi.json
+	$(MAKE) e2e
