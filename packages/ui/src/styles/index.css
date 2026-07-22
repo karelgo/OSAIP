@@ -1,0 +1,57 @@
+/* @osaip/ui stylesheet — import as "@osaip/ui/styles.css" from app code.
+   Self-hosted IBM Plex (OFL) via @fontsource, then the token contract, then
+   Tailwind layers. Processed by the consumer's PostCSS/Tailwind pipeline. */
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "./tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg font-sans text-sm text-fg antialiased;
+  }
+}
+
+@layer components {
+  /* Shimmering placeholder block; the reduced-motion block in tokens.css
+     freezes it, and the fallback below makes it fully static. */
+  .ui-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-bg-subtle) 25%,
+      var(--color-border) 50%,
+      var(--color-bg-subtle) 75%
+    );
+    background-size: 200% 100%;
+    animation: ui-shimmer 1.6s ease-in-out infinite;
+  }
+
+  @keyframes ui-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui-skeleton {
+      animation: none;
+      background: var(--color-bg-subtle);
+    }
+  }
+}
+
+@layer utilities {
+  /* Tabular numerals wherever data appears (§6.4). */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

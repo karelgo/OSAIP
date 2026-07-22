@@ -1,6 +1,7 @@
 """Shared fixtures: one pgvector container per test session, migrated by Alembic;
 per-test app + client with a clean transactionless session."""
 
+import asyncio
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from pathlib import Path
@@ -8,6 +9,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
+import uvicorn
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from asgi_lifespan import LifespanManager
@@ -81,6 +83,53 @@ async def login_as(
         new_client = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://testserver"
         )
+        opened.append(new_client)
+        start = await new_client.get("/api/v1/auth/login")
+        assert start.status_code == 302
+        params = parse_qs(urlsplit(start.headers["location"]).query)
+        callback = await new_client.get(
+            f"/api/v1/auth/callback?code={params['nonce'][0]}&state={params['state'][0]}"
+        )
+        assert callback.status_code == 302
+        return new_client
+
+    yield _login_as
+    for opened_client in opened:
+        await opened_client.aclose()
+
+
+@pytest.fixture
+async def http_base_url(app: FastAPI) -> AsyncIterator[str]:
+    """Real uvicorn server on an ephemeral port — required for SSE tests, because
+    httpx's ASGITransport buffers the whole response and never yields a live stream."""
+    config = uvicorn.Config(
+        app,
+        host="127.0.0.1",
+        port=0,
+        log_level="warning",
+        lifespan="off",
+        timeout_graceful_shutdown=2,
+    )
+    server = uvicorn.Server(config)
+    task = asyncio.create_task(server.serve())
+    while not server.started:  # noqa: ASYNC110 — uvicorn exposes no readiness event
+        await asyncio.sleep(0.02)
+    port = server.servers[0].sockets[0].getsockname()[1]
+    yield f"http://127.0.0.1:{port}"
+    server.should_exit = True
+    await task
+
+
+@pytest.fixture
+async def login_as_http(
+    http_base_url: str, fake_idp: FakeIdp
+) -> AsyncIterator[Callable[..., Awaitable[httpx.AsyncClient]]]:
+    """Like login_as, but over real HTTP (streams work)."""
+    opened: list[httpx.AsyncClient] = []
+
+    async def _login_as(subject: str, email: str, name: str = "Test User") -> httpx.AsyncClient:
+        fake_idp.subject, fake_idp.email, fake_idp.name = subject, email, name
+        new_client = httpx.AsyncClient(base_url=http_base_url)
         opened.append(new_client)
         start = await new_client.get("/api/v1/auth/login")
         assert start.status_code == 302

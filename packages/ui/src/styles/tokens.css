@@ -1,0 +1,165 @@
+/*
+ * OSAIP design tokens — the design contract (PROJECT_SPEC §6.4, LOCKED).
+ *
+ * Graphite / off-white neutrals (slightly cool dark grays, never pure black),
+ * ONE violet-indigo accent, and a semantic status palette (jobs, evals,
+ * guardrails) kept visually distinct from the accent. Light is the :root
+ * default; dark applies under [data-theme="dark"] and, for
+ * [data-theme="system"], under the OS preference. The app sets
+ * data-theme="light" | "dark" | "system" on <html>.
+ *
+ * The dark blocks below are duplicated by necessity (CSS has no mixins);
+ * src/styles/tokens.test.ts enforces that they stay in sync.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Neutral scale — off-white page, white surfaces, graphite text */
+  --color-bg: #fafaf9;
+  --color-bg-subtle: #f1f1f0;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border: #e3e3e4;
+  --color-border-strong: #c6c6ca;
+  --color-text: #1d1d20;
+  --color-text-muted: #55555c;
+  --color-text-faint: #86868e;
+
+  /* Accent — violet-indigo, the single brand hue */
+  --color-accent: #6e56cf;
+  --color-accent-hover: #5d45be;
+  --color-accent-subtle: #ece9fc;
+  --color-accent-text: #ffffff;
+  /* accent-strong: accent tuned for AA text on --color-accent-subtle */
+  --color-accent-strong: #563eb8;
+
+  /* Status palette — text-grade colors, AA on their -subtle backgrounds */
+  --color-status-info: #1d4ed8;
+  --color-status-info-subtle: #e7effd;
+  --color-status-success: #166534;
+  --color-status-success-subtle: #e3f3ea;
+  --color-status-warning: #92400e;
+  --color-status-warning-subtle: #faf0e0;
+  --color-status-danger: #b91c1c;
+  --color-status-danger-subtle: #fceaea;
+  /* Solid danger action color (danger buttons) — AA with white text */
+  --color-danger-solid: #b91c1c;
+  --color-danger-solid-hover: #9a1717;
+
+  /* Radius scale */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px 0 rgb(24 24 27 / 0.06);
+  --shadow-2: 0 2px 8px -1px rgb(24 24 27 / 0.1), 0 1px 2px -1px rgb(24 24 27 / 0.06);
+  --shadow-3: 0 12px 32px -8px rgb(24 24 27 / 0.18), 0 4px 12px -4px rgb(24 24 27 / 0.1);
+
+  /* Typography */
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Motion — 120–200 ms, quiet and disciplined */
+  --motion-fast: 120ms;
+  --motion-normal: 160ms;
+  --motion-slow: 200ms;
+
+  /* Density (comfortable default) */
+  --control-h: 36px;
+  --cell-py: 8px;
+}
+
+[data-density="compact"] {
+  --control-h: 30px;
+  --cell-py: 4px;
+}
+
+/* Dark theme — deep graphite, never pure black. Keep in sync with the
+   [data-theme="system"] block below (enforced by tokens.test.ts). */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #161618;
+  --color-bg-subtle: #1e1e21;
+  --color-surface: #1b1b1e;
+  --color-surface-raised: #232327;
+  --color-border: #2c2c31;
+  --color-border-strong: #43434b;
+  --color-text: #ededef;
+  --color-text-muted: #a3a3ac;
+  --color-text-faint: #71717a;
+
+  --color-accent: #7c66d9;
+  --color-accent-hover: #8b77e2;
+  --color-accent-subtle: #292350;
+  --color-accent-text: #ffffff;
+  --color-accent-strong: #b9abf5;
+
+  --color-status-info: #60a5fa;
+  --color-status-info-subtle: #1b2a44;
+  --color-status-success: #4ade80;
+  --color-status-success-subtle: #132b1d;
+  --color-status-warning: #fbbf24;
+  --color-status-warning-subtle: #32270f;
+  --color-status-danger: #f87171;
+  --color-status-danger-subtle: #371715;
+  --color-danger-solid: #c93732;
+  --color-danger-solid-hover: #b72f2a;
+
+  --shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-2: 0 2px 8px -1px rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-3: 0 12px 32px -8px rgb(0 0 0 / 0.6), 0 4px 12px -4px rgb(0 0 0 / 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    color-scheme: dark;
+
+    --color-bg: #161618;
+    --color-bg-subtle: #1e1e21;
+    --color-surface: #1b1b1e;
+    --color-surface-raised: #232327;
+    --color-border: #2c2c31;
+    --color-border-strong: #43434b;
+    --color-text: #ededef;
+    --color-text-muted: #a3a3ac;
+    --color-text-faint: #71717a;
+
+    --color-accent: #7c66d9;
+    --color-accent-hover: #8b77e2;
+    --color-accent-subtle: #292350;
+    --color-accent-text: #ffffff;
+    --color-accent-strong: #b9abf5;
+
+    --color-status-info: #60a5fa;
+    --color-status-info-subtle: #1b2a44;
+    --color-status-success: #4ade80;
+    --color-status-success-subtle: #132b1d;
+    --color-status-warning: #fbbf24;
+    --color-status-warning-subtle: #32270f;
+    --color-status-danger: #f87171;
+    --color-status-danger-subtle: #371715;
+    --color-danger-solid: #c93732;
+    --color-danger-solid-hover: #b72f2a;
+
+    --shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-2: 0 2px 8px -1px rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-3: 0 12px 32px -8px rgb(0 0 0 / 0.6), 0 4px 12px -4px rgb(0 0 0 / 0.45);
+  }
+}
+
+/* Reduced motion: zero out all transitions and animations globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

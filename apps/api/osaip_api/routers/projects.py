@@ -136,7 +136,8 @@ async def create_project(
             kind="project",
             project_id=project.id,
             name=body.name,
-            description=body.description,
+            # Key is part of the searchable text so ⌘K finds projects by key too.
+            description=f"{body.key} {body.description}".strip(),
             url_path=f"/p/{body.key}",
         )
     )
@@ -191,7 +192,7 @@ async def patch_project(
         ).scalar_one_or_none()
         if ref is not None:
             ref.name = ctx.project.name
-            ref.description = ctx.project.description
+            ref.description = f"{ctx.project.key} {ctx.project.description}".strip()
         await write_audit(
             session,
             actor_id=user.id,
