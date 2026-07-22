@@ -78,8 +78,8 @@ services:
       context: ../..
       dockerfile: apps/api/Dockerfile
     command:
-      ["uv", "run", "--no-sync", "uvicorn", "osaip_api.main:app",
-       "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      ["bash", "-c",
+       "uv run --no-sync alembic -c apps/api/alembic.ini upgrade head && exec uv run --no-sync uvicorn osaip_api.main:app --host 0.0.0.0 --port 8000 --reload"]
     environment: *api-env
     ports:
       - "8001:8000"

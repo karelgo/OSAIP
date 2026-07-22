@@ -10,11 +10,11 @@ COPY pyproject.toml uv.lock .python-version ./
 COPY packages packages
 COPY apps/api/pyproject.toml apps/api/pyproject.toml
 COPY apps/worker/pyproject.toml apps/worker/pyproject.toml
-RUN uv sync --frozen --no-install-workspace
+RUN uv sync --frozen --all-packages --no-install-workspace
 
 COPY apps/api apps/api
 COPY apps/worker apps/worker
-RUN uv sync --frozen
+RUN uv sync --frozen --all-packages
 
 EXPOSE 8000
 CMD ["uv", "run", "--no-sync", "uvicorn", "osaip_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
