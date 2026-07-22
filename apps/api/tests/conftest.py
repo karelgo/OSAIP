@@ -2,8 +2,9 @@
 per-test app + client with a clean transactionless session."""
 
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
@@ -66,3 +67,30 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
 async def db_session(app: FastAPI) -> AsyncIterator[AsyncSession]:
     async with app.state.sessionmaker() as session:
         yield session
+
+
+@pytest.fixture
+async def login_as(
+    app: FastAPI, fake_idp: FakeIdp
+) -> AsyncIterator[Callable[..., Awaitable[httpx.AsyncClient]]]:
+    """Factory: a fresh signed-in client for any identity (fresh cookie jar per call)."""
+    opened: list[httpx.AsyncClient] = []
+
+    async def _login_as(subject: str, email: str, name: str = "Test User") -> httpx.AsyncClient:
+        fake_idp.subject, fake_idp.email, fake_idp.name = subject, email, name
+        new_client = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+        )
+        opened.append(new_client)
+        start = await new_client.get("/api/v1/auth/login")
+        assert start.status_code == 302
+        params = parse_qs(urlsplit(start.headers["location"]).query)
+        callback = await new_client.get(
+            f"/api/v1/auth/callback?code={params['nonce'][0]}&state={params['state'][0]}"
+        )
+        assert callback.status_code == 302
+        return new_client
+
+    yield _login_as
+    for opened_client in opened:
+        await opened_client.aclose()

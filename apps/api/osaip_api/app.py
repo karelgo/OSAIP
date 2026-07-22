@@ -12,7 +12,7 @@ from osaip_api.config import Settings, get_settings
 from osaip_api.db import make_engine, make_sessionmaker
 from osaip_api.middleware import register_middleware
 from osaip_api.problem import register_problem_handlers
-from osaip_api.routers import auth, health, me, well_known
+from osaip_api.routers import audit_admin, auth, health, me, projects, well_known
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -56,5 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(me.router, prefix="/api/v1")
+    app.include_router(projects.router, prefix="/api/v1")
+    app.include_router(audit_admin.router, prefix="/api/v1")
     app.include_router(well_known.router)
     return app
