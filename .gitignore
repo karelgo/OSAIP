@@ -1,0 +1,40 @@
+# macOS
+.DS_Store
+
+# Office temp/lock files
+~$*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+storybook-static/
+*.tsbuildinfo
+.pnpm-store/
+
+# Env & secrets (never commit; see docs/adr/0005 for the one allowlisted dev realm secret)
+.env
+.env.*
+!.env.example
+
+# Test & build artifacts
+test-results/
+playwright-report/
+blob-report/
+.turbo/
+coverage/
+
+# Editors
+.idea/
+.vscode/
+*.swp
