@@ -1,0 +1,55 @@
+[project]
+name = "osaip-workspace"
+version = "0.0.0"
+description = "OSAIP monorepo workspace root (not an installable package)"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = [
+    "apps/api",
+    "apps/worker",
+    "packages/engine",
+    "packages/semantics",
+    "packages/agents",
+    "packages/rag",
+    "packages/evals",
+    "packages/sdk",
+    "packages/shared",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12",
+    "mypy>=1.16",
+    "pytest>=8.3",
+    "pytest-asyncio>=1.0",
+    "httpx>=0.28",
+    "httpx-sse>=0.4",
+    "testcontainers[postgres]>=4.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "ASYNC"]
+ignore = ["S101"]  # asserts are fine in tests; app code avoids them by convention
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S105", "S106"]  # fixed dev-realm credentials in tests (ADR-0005)
+
+[tool.mypy]
+python_version = "3.12"
+plugins = []
+
+[[tool.mypy.overrides]]
+module = ["uuid6", "uuid6.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["apps/api/tests", "apps/worker/tests", "packages"]

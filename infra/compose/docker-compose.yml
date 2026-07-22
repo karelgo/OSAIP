@@ -1,0 +1,143 @@
+# OSAIP dev stack — `make dev` from the repo root. Dev-only credentials throughout
+# (fixed Keycloak realm secret is a recorded exception, ADR-0005/SECURITY.md).
+# Keycloak is deliberately EPHEMERAL: realm state is code (keycloak/realm-osaip.json)
+# and re-imports on every recreate; runtime changes in the admin console are throwaway.
+
+x-api-env: &api-env
+  OSAIP_DATABASE_URL: postgresql+asyncpg://osaip:osaip@postgres:5432/osaip
+  OSAIP_DEV: "1"
+  OSAIP_SESSION_SECRET: dev-session-secret-not-for-prod
+  # Dual-hostname OIDC (ADR-0001): issuer/authorize are browser-facing (localhost),
+  # token/JWKS are fetched container-internally (keycloak:8080).
+  OSAIP_OIDC_ISSUER: http://localhost:8081/realms/osaip
+  OSAIP_OIDC_INTERNAL_BASE: http://keycloak:8080/realms/osaip
+  OSAIP_OIDC_CLIENT_ID: osaip-api
+  OSAIP_OIDC_CLIENT_SECRET: osaip-dev-secret
+  OSAIP_PUBLIC_URL: http://localhost:5173
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: osaip
+      POSTGRES_PASSWORD: osaip
+      POSTGRES_DB: osaip
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U osaip -d osaip"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  seaweedfs:
+    # Dev object store (spec §3.1: never MinIO). Unused until Phase 1 datasets land,
+    # but part of the baseline stack so `make dev` matches the spec's compose set.
+    image: chrislusf/seaweedfs:3.80
+    command: server -ip.bind=0.0.0.0 -s3 -s3.port=8333 -dir=/data
+    ports:
+      - "8333:8333"
+    volumes:
+      - seaweed-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9333/cluster/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Pin the issuer to the browser-facing URL; allow container-internal backchannel
+      # calls (token/JWKS from the api service) on keycloak:8080. ADR-0001.
+      KC_HOSTNAME: http://localhost:8081
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      # Quarkus image has no curl/wget; health lives on management port 9000 (KC 25+).
+      test:
+        - CMD-SHELL
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '200 OK' <&3
+      interval: 5s
+      timeout: 5s
+      retries: 36
+      start_period: 30s
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    command:
+      ["uv", "run", "--no-sync", "uvicorn", "osaip_api.main:app",
+       "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment: *api-env
+    ports:
+      - "8001:8000"
+    volumes:
+      - ../../apps/api/osaip_api:/repo/apps/api/osaip_api
+      - ../../packages/shared/osaip_shared:/repo/packages/shared/osaip_shared
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/healthz').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    command: ["uv", "run", "--no-sync", "python", "-m", "osaip_worker.main"]
+    environment: *api-env
+    volumes:
+      - ../../apps/worker/osaip_worker:/repo/apps/worker/osaip_worker
+      - ../../packages/shared/osaip_shared:/repo/packages/shared/osaip_shared
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: node:22-bookworm-slim
+    working_dir: /repo
+    command: >-
+      bash -lc "corepack enable && corepack prepare pnpm@10.13.1 --activate
+      && pnpm install --frozen-lockfile && pnpm --filter @osaip/web dev"
+    environment:
+      OSAIP_API_URL: http://api:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../..:/repo
+      # Linux-only node_modules live in named volumes so they never mix with the
+      # host's (different OS/arch native binaries).
+      - web-root-modules:/repo/node_modules
+      - web-app-modules:/repo/apps/web/node_modules
+      - web-ui-modules:/repo/packages/ui/node_modules
+      - web-canvas-modules:/repo/packages/canvas/node_modules
+      - web-apiclient-modules:/repo/packages/api-client/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  seaweed-data:
+  web-root-modules:
+  web-app-modules:
+  web-ui-modules:
+  web-canvas-modules:
+  web-apiclient-modules:
