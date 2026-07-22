@@ -19,6 +19,7 @@ from osaip_api.db import get_session
 from osaip_api.models import Session as SessionRow
 from osaip_api.models import User
 from osaip_api.problem import Problem
+from osaip_api.schemas import LogoutOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -124,7 +125,7 @@ async def callback(
     return response
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=LogoutOut)
 async def logout(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_session)],

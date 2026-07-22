@@ -53,6 +53,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
         docs_url="/api/v1/docs" if settings.dev else None,
         openapi_url="/api/v1/openapi.json",
+        # Route function names become operation ids → clean generated client names
+        # (getMe, listProjects) instead of path-mangled ones.
+        generate_unique_id_function=lambda route: route.name,
     )
     app.state.settings = settings
 

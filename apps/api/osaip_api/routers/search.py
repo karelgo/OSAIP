@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from osaip_api.auth.deps import CurrentUser
 from osaip_api.db import get_session
 from osaip_api.models import ObjectRef, Project, ProjectMember
+from osaip_api.schemas import SearchOut
 
 router = APIRouter(tags=["search"])
 
@@ -25,7 +26,7 @@ def _prefix_tsquery(q: str) -> str:
     return " & ".join(f"{word}:*" for word in words)
 
 
-@router.get("/search")
+@router.get("/search", response_model=SearchOut)
 async def search(
     user: CurrentUser,
     session: DbSession,

@@ -11,13 +11,14 @@ from osaip_api.auth.deps import CurrentUser
 from osaip_api.db import get_session
 from osaip_api.models import AuditLog
 from osaip_api.permissions import require_site_admin
+from osaip_api.schemas import AuditListOut, AuditVerifyOut
 
 router = APIRouter(tags=["audit"])
 
 DbSession = Annotated[AsyncSession, Depends(get_session)]
 
 
-@router.get("/audit")
+@router.get("/audit", response_model=AuditListOut)
 async def list_audit(
     user: CurrentUser,
     session: DbSession,
@@ -50,7 +51,7 @@ async def list_audit(
     }
 
 
-@router.post("/audit/verify")
+@router.post("/audit/verify", response_model=AuditVerifyOut)
 async def verify_audit_chain(user: CurrentUser, session: DbSession) -> dict[str, Any]:
     require_site_admin(user)
     result = await verify_chain(session)

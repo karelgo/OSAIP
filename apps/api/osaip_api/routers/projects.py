@@ -22,6 +22,12 @@ from osaip_api.permissions import (
     project_payload,
 )
 from osaip_api.problem import Problem
+from osaip_api.schemas import (
+    AuditListOut,
+    MembersOut,
+    ProjectListOut,
+    ProjectOut,
+)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -69,7 +75,7 @@ def _decode_cursor(cursor: str) -> str:
         ) from exc
 
 
-@router.get("")
+@router.get("", response_model=ProjectListOut)
 async def list_projects(
     request: Request,
     user: CurrentUser,
@@ -101,7 +107,7 @@ async def list_projects(
     return etag_json_response(request, payload)
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=ProjectOut)
 async def create_project(
     body: ProjectCreate, request: Request, user: CurrentUser, session: DbSession
 ) -> JSONResponse:
@@ -160,7 +166,7 @@ async def create_project(
     return JSONResponse(content=payload, status_code=201)
 
 
-@router.get("/{key}")
+@router.get("/{key}", response_model=ProjectOut)
 async def get_project(
     key: str, request: Request, user: CurrentUser, session: DbSession
 ) -> Response:
@@ -168,7 +174,7 @@ async def get_project(
     return etag_json_response(request, project_payload(ctx))
 
 
-@router.patch("/{key}")
+@router.patch("/{key}", response_model=ProjectOut)
 async def patch_project(
     key: str, body: ProjectPatch, request: Request, user: CurrentUser, session: DbSession
 ) -> dict[str, Any]:
@@ -209,7 +215,7 @@ async def patch_project(
     return project_payload(ctx)
 
 
-@router.delete("/{key}")
+@router.delete("/{key}", response_model=ProjectOut)
 async def archive_project(
     key: str, request: Request, user: CurrentUser, session: DbSession
 ) -> dict[str, Any]:
@@ -251,7 +257,7 @@ def _archived_problem(key: str) -> Problem:
     )
 
 
-@router.get("/{key}/members")
+@router.get("/{key}/members", response_model=MembersOut)
 async def list_members(key: str, user: CurrentUser, session: DbSession) -> dict[str, Any]:
     ctx = await load_project_context(session, user, key, min_role="viewer")
     rows = (
@@ -275,7 +281,7 @@ async def list_members(key: str, user: CurrentUser, session: DbSession) -> dict[
     }
 
 
-@router.put("/{key}/members")
+@router.put("/{key}/members", response_model=MembersOut)
 async def replace_members(
     key: str, body: MembersPut, request: Request, user: CurrentUser, session: DbSession
 ) -> dict[str, Any]:
@@ -333,7 +339,7 @@ async def replace_members(
     return await list_members(key, user, session)
 
 
-@router.delete("/{key}/members/{user_id}")
+@router.delete("/{key}/members/{user_id}", response_model=MembersOut)
 async def remove_member(
     key: str, user_id: str, request: Request, user: CurrentUser, session: DbSession
 ) -> dict[str, Any]:
@@ -395,7 +401,7 @@ def _needs_admin_problem() -> Problem:
     )
 
 
-@router.get("/{key}/audit")
+@router.get("/{key}/audit", response_model=AuditListOut)
 async def project_audit(
     key: str,
     user: CurrentUser,
