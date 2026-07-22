@@ -52,8 +52,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {/* Slot requires a single child, so the spinner is only injected for
             plain buttons; asChild callers compose their own loading state. */}
-        {loading && !asChild ? <Spinner /> : null}
-        {children}
+        {asChild ? (
+          children
+        ) : (
+          <>
+            {loading ? <Spinner /> : null}
+            {children}
+          </>
+        )}
       </Comp>
     );
   },

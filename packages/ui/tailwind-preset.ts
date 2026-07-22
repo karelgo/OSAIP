@@ -5,8 +5,10 @@
 import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
 
+const darkMode: NonNullable<Config["darkMode"]> = ["selector", '[data-theme="dark"]'];
+
 const preset = {
-  darkMode: ["selector", '[data-theme="dark"]'],
+  darkMode,
   theme: {
     extend: {
       colors: {

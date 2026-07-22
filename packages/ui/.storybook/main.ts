@@ -7,6 +7,10 @@ const config: StorybookConfig = {
     name: "@storybook/react-vite",
     options: {},
   },
+  core: {
+    // No anonymous telemetry from CI or dev machines.
+    disableTelemetry: true,
+  },
 };
 
 export default config;

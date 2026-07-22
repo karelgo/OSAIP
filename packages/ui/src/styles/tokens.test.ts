@@ -1,10 +1,15 @@
 // Token contract test — tokens.css is the design contract (§6.4, LOCKED).
 // If this fails, a token was renamed or dropped; that is a breaking change.
+// @vitest-environment node
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const css = readFileSync(fileURLToPath(new URL("./tokens.css", import.meta.url)), "utf8");
+// Comments are stripped so selectors mentioned in prose don't confuse parsing.
+const css = readFileSync(fileURLToPath(new URL("./tokens.css", import.meta.url)), "utf8").replace(
+  /\/\*[\s\S]*?\*\//g,
+  "",
+);
 
 /** Extract the balanced `{ ... }` body following the first occurrence of `selector`. */
 function blockFor(source: string, selector: string): string {

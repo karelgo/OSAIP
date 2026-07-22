@@ -6,6 +6,7 @@ import { EmptyState } from "./EmptyState";
 const meta = {
   title: "Components/EmptyState",
   component: EmptyState,
+  args: { title: "No datasets yet" },
 } satisfies Meta<typeof EmptyState>;
 export default meta;
 
