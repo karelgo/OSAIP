@@ -4,16 +4,31 @@ import "../src/styles/index.css";
 
 // Theme + density land on <html> exactly like the app shell sets them
 // (data-theme="light" | "dark" | "system", data-density).
-const withThemeAndDensity: Decorator = (Story, context) => {
-  const theme = (context.globals.theme as string | undefined) ?? "light";
-  const density = (context.globals.density as string | undefined) ?? "comfortable";
+function ThemeScope({
+  theme,
+  density,
+  children,
+}: {
+  theme: string;
+  density: string;
+  children: React.ReactNode;
+}) {
   React.useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-theme", theme);
     root.setAttribute("data-density", density);
   }, [theme, density]);
-  return <Story />;
-};
+  return <>{children}</>;
+}
+
+const withThemeAndDensity: Decorator = (Story, context) => (
+  <ThemeScope
+    theme={(context.globals.theme as string | undefined) ?? "light"}
+    density={(context.globals.density as string | undefined) ?? "comfortable"}
+  >
+    <Story />
+  </ThemeScope>
+);
 
 const preview: Preview = {
   globalTypes: {

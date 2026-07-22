@@ -39,9 +39,11 @@ e2e:
 seed:
 	@echo "seed lands in slice 10"; exit 1
 
-## gen-api: export openapi.json and regenerate packages/api-client (lands in slice 6)
+## gen-api: export openapi.json and regenerate packages/api-client (§3.2: no hand-written fetch)
 gen-api:
-	@echo "gen-api lands in slice 6"; exit 1
+	uv run python -m osaip_api.export_openapi > packages/api-client/openapi.json
+	pnpm --filter @osaip/api-client generate
+	pnpm --filter @osaip/api-client typecheck
 
 ## ci: the full local gate (mirrors .github/workflows/ci.yml)
 ci: lint test

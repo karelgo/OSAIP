@@ -28,6 +28,8 @@ export interface CommandDialogProps {
   onOpenChange?: (open: boolean) => void;
   /** Accessible dialog name, visually hidden. */
   title?: string;
+  /** Set false when results are filtered server-side (cmdk passthrough). */
+  shouldFilter?: boolean;
   children: React.ReactNode;
   contentProps?: Omit<DialogContentProps, "children">;
 }
@@ -37,6 +39,7 @@ export function CommandDialog({
   open,
   onOpenChange,
   title = "Command palette",
+  shouldFilter = true,
   children,
   contentProps,
 }: CommandDialogProps) {
@@ -52,7 +55,7 @@ export function CommandDialog({
         )}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
-        <Command>{children}</Command>
+        <Command shouldFilter={shouldFilter}>{children}</Command>
       </DialogContent>
     </Dialog>
   );
