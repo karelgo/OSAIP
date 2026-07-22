@@ -47,5 +47,5 @@ First working vertical slice of the platform (spec §7 Phase 0 + Compliance Pack
 
 ### Decisions
 ADR-0001 BFF OIDC · ADR-0002 asyncpg (license) · ADR-0003 SSE design ·
-ADR-0004 license exceptions (ISC, OFL-1.1, MPL-2.0 dev-only; elkjs flagged) ·
+ADR-0004 license exceptions (ISC, OFL-1.1, MPL-2.0 dev-only; elkjs→dagre swap, user-approved) ·
 ADR-0005 Compliance Pack P0 adoption with recorded deferrals.

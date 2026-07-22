@@ -171,7 +171,7 @@ default; all data IO via the SDK broker (no ambient credentials).
 registry; SHAP; Evidently drift; model serving as per-deployment FastAPI containers.
 **Quality**: Pandera in-recipe; dataset metrics & checks via DuckDB.
 **Ingestion**: dlt (Apache-2.0) for API/SaaS sources; native file/S3/SQL paths.
-**Frontend**: React 18 + TS strict + Vite + pnpm; `@xyflow/react` + elkjs (Flow AND agent
+**Frontend**: React 18 + TS strict + Vite + pnpm; `@xyflow/react` + @dagrejs/dagre (Flow AND agent
 canvases share one graph-canvas package); TanStack Router + Query/Table; Zustand;
 react-hook-form + zod; cmdk; shadcn/Radix components; Monaco; ECharts; Tailwind. Full IA,
 design system, interaction patterns, and budgets: **§6**.
@@ -377,7 +377,7 @@ Everything is deep-linkable; the URL carries selection, filters, and open panels
 - `packages/api-client`: generated from OpenAPI including typed TanStack Query hooks;
   hand-written fetch code is forbidden.
 - Route-level code splitting per module; virtualized tables; skeletons over spinners;
-  optimistic mutations with idempotency keys; elkjs layout runs in a web worker.
+  optimistic mutations with idempotency keys; dagre layout runs in a web worker.
 - Budgets (CI-checked where practical): initial route JS < 300 KB gz; p95 interaction
   < 100 ms; 1k-row preview < 300 ms; a 500-node canvas stays smooth.
 

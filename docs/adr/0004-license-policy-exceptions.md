@@ -20,11 +20,11 @@ Recorded exceptions, scoped as narrowly as stated:
    testing (CP-13); never shipped in the product bundle. Accepted for build/test
    tooling only.
 
-**Forward flag (must be resolved before Phase 1):** spec §3.2 picks `elkjs` for graph
-layout, but elkjs is licensed **EPL-2.0 OR GPL-3.0-or-later** — neither is on the
-allowlist, and it runs in-process in the browser. Before Phase 1 either (a) record an
-EPL-2.0 weak-copyleft exception here per §9.6, or (b) swap to an MIT layout engine
-(e.g. dagre) with user approval, since §3.2 is LOCKED. Do not add elkjs silently.
+**Resolved (user decision, 2026-07-22): dagre replaces elkjs.** Spec §3.2 originally
+picked `elkjs`, which is licensed EPL-2.0 OR GPL-3.0-or-later — neither is on the
+allowlist, and it would run in-process in the browser. With explicit user approval
+(§9.6) the graph-layout engine is now **`@dagrejs/dagre` (MIT)**; PROJECT_SPEC.md
+§3.2/§6.5 have been updated. No EPL/GPL exception exists — the gate still blocks both.
 
 ## Consequences
 The CI gate allowlist = §3.1 list + ISC (code) + OFL-1.1 (font assets) + MPL-2.0
