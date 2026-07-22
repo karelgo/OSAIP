@@ -975,6 +975,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "ruff" },
     { name = "testcontainers" },
+    { name = "types-authlib" },
 ]
 
 [package.metadata]
@@ -989,6 +990,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.0" },
     { name = "ruff", specifier = ">=0.12" },
     { name = "testcontainers", extras = ["postgres"], specifier = ">=4.9" },
+    { name = "types-authlib", specifier = ">=1.7.1.20260722" },
 ]
 
 [[package]]
@@ -1378,6 +1380,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ca/ac/a597c3a0e02b26cbed6dd07df68be1e57684766fd1c381dee9b170a99690/testcontainers-4.14.2.tar.gz", hash = "sha256:1340ccf16fe3acd9389a6c9e1d9ab21d9fe99a8afdf8165f89c3e69c1967d239", size = 166841, upload-time = "2026-03-18T05:19:16.696Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/13/2d/26b8b30067d94339afee62c3edc9b803a6eb9332f521ba77d8aaab5de873/testcontainers-4.14.2-py3-none-any.whl", hash = "sha256:0d0522c3cd8f8d9627cda41f7a6b51b639fa57bdc492923c045117933c668d68", size = 125712, upload-time = "2026-03-18T05:19:15.29Z" },
+]
+
+[[package]]
+name = "types-authlib"
+version = "1.7.1.20260722"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/08/36/5d83da012e26b4a9433409ca2cd6a87060e598b6e5db1013313c55e375a7/types_authlib-1.7.1.20260722.tar.gz", hash = "sha256:1f36356bd0648ce9d50eedf12c1112ec86bf45bfe85b755a90ecab23a4e927a2", size = 49369, upload-time = "2026-07-22T04:56:01.302Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/75/78331f33def2721ea4877f0157f775f57d9b9ff107e08a1234bf24f515f3/types_authlib-1.7.1.20260722-py3-none-any.whl", hash = "sha256:ee42df33180924d6e03f56a513f044b4670b8ea802567335da682a5d2619e8e9", size = 109089, upload-time = "2026-07-22T04:56:00.211Z" },
 ]
 
 [[package]]

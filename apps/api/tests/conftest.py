@@ -15,7 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from testcontainers.postgres import PostgresContainer
 
 from osaip_api.app import create_app
+from osaip_api.auth.oidc import OidcClient
 from osaip_api.config import Settings
+
+from .fake_idp import FakeIdp
 
 API_DIR = Path(__file__).resolve().parents[1]
 
@@ -39,9 +42,16 @@ def settings(database_url: str) -> Settings:
 
 
 @pytest.fixture
-async def app(settings: Settings) -> AsyncIterator[FastAPI]:
+def fake_idp(settings: Settings) -> "FakeIdp":
+    return FakeIdp(settings)
+
+
+@pytest.fixture
+async def app(settings: Settings, fake_idp: "FakeIdp") -> AsyncIterator[FastAPI]:
     application = create_app(settings)
     async with LifespanManager(application):
+        # Point the OIDC client at the in-process fake IdP (tests never do real HTTP).
+        application.state.oidc = OidcClient(settings, fake_idp.make_client())
         yield application
 
 

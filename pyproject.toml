@@ -30,6 +30,7 @@ dev = [
     "httpx-sse>=0.4",
     "testcontainers[postgres]>=4.9",
     "asgi-lifespan>=2.1.0",
+    "types-authlib>=1.7.1.20260722",
 ]
 
 [tool.ruff]
