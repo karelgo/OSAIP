@@ -29,6 +29,7 @@ dev = [
     "httpx>=0.28",
     "httpx-sse>=0.4",
     "testcontainers[postgres]>=4.9",
+    "asgi-lifespan>=2.1.0",
 ]
 
 [tool.ruff]
@@ -39,8 +40,13 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B", "S", "ASYNC"]
 ignore = ["S101"]  # asserts are fine in tests; app code avoids them by convention
 
+[tool.ruff.lint.isort]
+known-first-party = ["osaip_api", "osaip_worker", "osaip_shared", "osaip"]
+
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S105", "S106"]  # fixed dev-realm credentials in tests (ADR-0005)
+"apps/api/osaip_api/config.py" = ["S105"]  # documented dev-only defaults (ADR-0005)
+"apps/api/alembic/versions/*" = ["E501"]  # generated migrations keep autogen layout
 
 [tool.mypy]
 python_version = "3.12"

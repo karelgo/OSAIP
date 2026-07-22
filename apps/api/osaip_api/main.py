@@ -1,10 +1,5 @@
-"""ASGI entrypoint. Placeholder app — the real app factory lands with the API base slice."""
+"""ASGI entrypoint: `uvicorn osaip_api.main:app`."""
 
-from fastapi import FastAPI
+from osaip_api.app import create_app
 
-app = FastAPI(title="OSAIP API")
-
-
-@app.get("/api/v1/healthz")
-async def healthz() -> dict[str, str]:
-    return {"status": "ok"}
+app = create_app()
