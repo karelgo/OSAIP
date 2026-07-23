@@ -17,6 +17,7 @@ from osaip_api.routers import (
     audit_admin,
     auth,
     connections,
+    datasets,
     dev,
     events,
     health,
@@ -97,6 +98,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(projects.router, prefix="/api/v1")
     app.include_router(connections.router, prefix="/api/v1")
     app.include_router(uploads.router, prefix="/api/v1")
+    app.include_router(datasets.router, prefix="/api/v1")
     app.include_router(audit_admin.router, prefix="/api/v1")
     app.include_router(search.router, prefix="/api/v1")
     app.include_router(events.router, prefix="/api/v1")

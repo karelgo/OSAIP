@@ -20,17 +20,19 @@ from osaip_api.idempotency import check_idempotency, store_idempotent_response
 from osaip_api.models import Connection, Dataset, Secret
 from osaip_api.permissions import ProjectContext, load_project_context
 from osaip_api.problem import Problem
-from osaip_api.schemas import ConnectionListOut, ConnectionOut, ConnectionTestOut
+from osaip_api.schemas import ConnectionListOut, ConnectionOut, ConnectionTestOut, InspectOut
 from osaip_api.secrets import Vault
-from osaip_engine import pg
-from osaip_engine.aio import run_engine
-from osaip_engine.errors import (
-    AuthFailed,
-    DatabaseNotFound,
-    EngineError,
-    HostUnreachable,
-    ObjectNotFound,
+from osaip_api.sources import (
+    contained_duckdb_uri,
+    engine_problem,
+    pg_target,
+    s3_config,
+    validate_rel_path,
+    validate_table_name,
 )
+from osaip_engine import duck, pg
+from osaip_engine.aio import run_engine
+from osaip_engine.errors import EngineError, ObjectNotFound
 from osaip_engine.storage import Storage, StorageConfig
 from osaip_shared.ids import new_id
 from osaip_shared.storage_layout import project_prefix
@@ -453,17 +455,57 @@ async def test_connection(
     return {"ok": True, "latency_ms": round(latency, 1)}
 
 
+class InspectIn(BaseModel):
+    table: str | None = None
+    path: str | None = None
+
+
+@router.post("/{connection_id}/inspect", response_model=InspectOut)
+async def inspect_connection(
+    key: str,
+    connection_id: str,
+    body: InspectIn,
+    request: Request,
+    user: CurrentUser,
+    session: DbSession,
+) -> dict[str, Any]:
+    """Preview-first (§6.3(3)): schema + rows from a connection target BEFORE any
+    dataset is registered. Editors use this in the register panel."""
+    ctx = await load_project_context(session, user, key, min_role="editor")
+    connection = await _get_connection(session, ctx, connection_id)
+    secret = await _decrypted_secret(session, request.app.state.vault, connection)
+    platform_storage: Storage = request.app.state.storage
+    try:
+        if connection.kind == "postgres":
+            table = validate_table_name(body.table or "")
+            columns, preview = await run_engine(
+                lambda: duck.inspect_postgres_table(pg_target(connection, secret), table)
+            )
+        elif connection.kind == "s3":
+            rel_path = validate_rel_path(body.path or "", suffix=".parquet")
+            config = s3_config(connection, secret)
+            uri = f"s3://{config.bucket}/{rel_path}"
+            columns, preview = await run_engine(lambda: duck.sample_parquet(config, uri, limit=50))
+        else:  # duckdb_file
+            table = validate_table_name(body.table or "")
+            uri = contained_duckdb_uri(
+                platform_storage.config.bucket, ctx.project.key, str(connection.config["path"])
+            )
+            columns, preview = await run_engine(
+                lambda: duck.inspect_duckdb_file(platform_storage.config, uri, table)
+            )
+    except EngineError as exc:
+        raise engine_problem(exc) from exc
+    return {
+        "columns": [
+            {"name": c.name, "type": c.type, "nullable": c.nullable, "classification": "none"}
+            for c in columns
+        ],
+        "preview": preview,
+    }
+
+
 def _engine_problem(exc: EngineError) -> Problem:
-    slug = {
-        AuthFailed: "connection-auth-failed",
-        HostUnreachable: "connection-unreachable",
-        DatabaseNotFound: "connection-db-not-found",
-        ObjectNotFound: "connection-object-not-found",
-    }.get(type(exc), "connection-failed")
-    return Problem(
-        400,
-        title="Connection test failed",
-        detail=exc.public_message,  # sanitized by construction (ADR-0006 §4)
-        hint="Fix the connection settings or credentials and test again.",
-        slug=slug,
-    )
+    problem = engine_problem(exc)
+    problem.title = "Connection test failed"
+    return problem

@@ -55,6 +55,60 @@ class UploadOut(BaseModel):
     preview: list[dict[str, Any]]
 
 
+class InspectOut(BaseModel):
+    columns: list[ColumnOut]
+    preview: list[dict[str, Any]]
+
+
+class DatasetOut(BaseModel):
+    name: str
+    kind: str
+    description: str
+    status: str
+    classification: str
+    bbn_level: str | None
+    confidentiality: str | None
+    legal_basis: str
+    purpose_codes: list[str]
+    params: dict[str, Any]
+    connection_id: str | None
+    current_version: int
+    columns: list[ColumnOut]
+    row_count: int | None
+    row_count_kind: str | None
+    has_profile: bool
+    created_at: str
+    updated_at: str
+
+
+class DatasetListItemOut(BaseModel):
+    name: str
+    kind: str
+    description: str
+    classification: str
+    bbn_level: str | None
+    confidentiality: str | None
+    row_count: int | None
+    row_count_kind: str | None
+    current_version: int
+    updated_at: str
+
+
+class DatasetListOut(BaseModel):
+    items: list[DatasetListItemOut]
+    next_cursor: str | None
+
+
+class SampleOut(BaseModel):
+    columns: list[ColumnOut]
+    rows: list[dict[str, Any]]
+    limit: int
+
+
+class ProfileOut(BaseModel):
+    profile: dict[str, Any]
+
+
 class ProjectOut(BaseModel):
     key: str
     name: str

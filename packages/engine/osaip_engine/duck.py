@@ -371,6 +371,72 @@ def sample_postgres_table(
     return inspect_postgres_table(target, table, preview_rows=limit)
 
 
+def profile_postgres_table(target: PgAttach, table: str) -> dict[str, Any]:
+    conn = _connect()
+    try:
+        _attach_postgres(conn, target, "src")
+        return _profile(conn, f"src.{qualified_ident(table)}")
+    except duckdb.Error as exc:
+        raise _map_duck_error(exc) from exc
+    finally:
+        conn.close()
+
+
+def postgres_table_estimate(target: PgAttach, table: str) -> int | None:
+    """Planner estimate (pg_class.reltuples) — exact COUNT(*) over a customer table
+    is a Phase 2 job (plan §7)."""
+    inner = (
+        f"SELECT reltuples::bigint AS n FROM pg_class WHERE oid = to_regclass({sql_literal(table)})"  # noqa: E501
+    )
+    conn = _connect()
+    try:
+        _attach_postgres(conn, target, "src")
+        row = conn.execute(f"SELECT * FROM postgres_query('src', {sql_literal(inner)})").fetchone()
+        if row is None or row[0] is None or int(row[0]) < 0:
+            return None
+        return int(row[0])
+    except duckdb.Error:
+        return None  # estimate is best-effort
+    finally:
+        conn.close()
+
+
+# ── duckdb_file datasets (a .duckdb database inside project storage, over httpfs) ──
+
+
+def _attach_duckdb_file(conn: duckdb.DuckDBPyConnection, s3_uri: str, alias: str = "src") -> None:
+    # READ_ONLY is mandatory for httpfs attaches and our policy everywhere.
+    conn.execute(f"ATTACH {sql_literal(s3_uri)} AS {alias} (READ_ONLY)")
+
+
+def inspect_duckdb_file(
+    storage: StorageConfig, s3_uri: str, table: str, *, preview_rows: int = 50
+) -> tuple[list[Column], list[dict[str, Any]]]:
+    conn = _connect(storage)
+    try:
+        _attach_duckdb_file(conn, s3_uri)
+        relation = f"src.{qualified_ident(table)}"
+        cursor = _with_timeout(
+            conn, lambda: conn.execute(f"SELECT * FROM {relation} LIMIT {int(preview_rows)}")
+        )
+        return _columns_from_description(cursor.description), _rows_as_dicts(cursor)
+    except duckdb.Error as exc:
+        raise _map_duck_error(exc) from exc
+    finally:
+        conn.close()
+
+
+def profile_duckdb_file(storage: StorageConfig, s3_uri: str, table: str) -> dict[str, Any]:
+    conn = _connect(storage)
+    try:
+        _attach_duckdb_file(conn, s3_uri)
+        return _profile(conn, f"src.{qualified_ident(table)}")
+    except duckdb.Error as exc:
+        raise _map_duck_error(exc) from exc
+    finally:
+        conn.close()
+
+
 # ── Error mapping ────────────────────────────────────────────────────────────────
 
 
