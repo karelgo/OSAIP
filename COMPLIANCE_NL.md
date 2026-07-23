@@ -115,7 +115,7 @@ assessment will probe first:
 | 5.24-5.28 Incident management (+ Cbw meldplicht: early warning 24h / notification 72h / final report) | Incident & breach register with timers + export to the central meldloket; security-event webhooks | ✚ CP-8 |
 | 5.29-5.30, 8.13-8.14 Continuity & backup | Versioned datasets, Postgres/object-store backup runbooks, restore drills in ops docs | ◐ |
 | 8.8-8.9 Vulnerability & configuration mgmt | Pinned deps, CI scanning, hardened compose/Helm baselines, NCSC TLS presets | ✚ CP-12/14 |
-| 8.12 Data leakage prevention | Guardrail pipeline (Presidio PII, denylists) on every mesh call; egress allowlists on tools | ✔ |
+| 8.12 Data leakage prevention | Guardrail pipeline (Presidio PII, denylists) on every mesh call; egress allowlists on tools. **Phase 2 note:** the ✔ excludes v1 Python code-recipes until container isolation lands — the subprocess sandbox denies network (`unshare -n`, Linux) but is not a hard boundary, so a compensating control blocks Python recipes on `bsn`/`bijzonder`/`bbn3`-labelled inputs (ADR-0007 §5). | ◐ |
 | 8.15-8.17 Logging, monitoring, clock sync | Append-only audit + ledger + traces; SIEM/syslog export; NTP in infra baseline | ✔ + CP-7 |
 | 8.24 Cryptography | TLS everywhere, secrets encrypted at rest (Fernet→KMS option), hashed tokens | ✔/◐ |
 | 8.25-8.31 Secure development | SPEC §8 conventions, ADRs, code review, e2e + injection test sets | ✔ |

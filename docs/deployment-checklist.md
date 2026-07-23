@@ -43,6 +43,25 @@ this list. Items marked [org] are organisational, not platform switches.
 - [ ] Bucket lifecycle/backup policy for `projects/` decided (datasets are versioned
       parquet; raw uploads are transient and pruned after 24h by the worker).
 
+## Recipe execution & the Python sandbox (Phase 2, ADR-0007)
+
+- [ ] **Run the worker on Linux** in production — the Python-recipe sandbox denies
+      network via `unshare -n` and enforces `RLIMIT_AS` only on Linux; on macOS dev
+      both are degraded (documented). A non-Linux worker is not a compliant sandbox.
+- [ ] The sandbox is subprocess isolation, **not** container isolation (a later
+      hardening). Until then, Python recipes on `bsn`/`bijzonder`/`bbn3`-labelled
+      inputs are blocked by a compensating control (BIO2 8.12 — see COMPLIANCE_NL.md
+      §3.3 note). Do not weaken that gate before container isolation lands.
+- [ ] Tune `OSAIP_SANDBOX_CPU_SECONDS` / `_MEM_BYTES` / `_WALL_SECONDS` and
+      `OSAIP_DUCKDB_BUILD_MEMORY_LIMIT` / `_PREVIEW_MEMORY_LIMIT` /
+      `OSAIP_ENGINE_CONCURRENCY` to the host; set a spill `temp_directory` for large
+      builds. Run one worker per host (job claiming is `FOR UPDATE SKIP LOCKED`, safe
+      to scale horizontally).
+- [ ] Job logs (`projects/<key>/artifacts/jobs/…`) are a personal-data-bearing
+      stream (user `print`s, error values): they inherit the max input classification
+      and get an interim 30-day TTL prune. Fold them into the CP-3 retention engine
+      when it lands (Phase 8).
+
 ## Time & evidence integrity (CP-7)
 
 - [ ] **NTP/chrony on every host** — the audit chain's `ts` values are evidence;

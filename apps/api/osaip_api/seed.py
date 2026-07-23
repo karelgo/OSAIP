@@ -282,6 +282,131 @@ async def _ensure_demo_src(settings: Settings) -> None:
         await demo.close()
 
 
+async def _ensure_enriched_recipe(
+    session: AsyncSession, settings: Settings, project: Project, admin: User
+) -> None:
+    """A prebuilt prepare recipe over sales_orders so the Flow renders a live (fresh)
+    node on first boot (Phase 2 seed v2.1). Adds a `margin` formula column and builds
+    v1 directly (seed is a CLI, not the async request loop)."""
+    from osaip_api.models import Recipe, RecipeInput, RecipeOutput
+    from osaip_api.object_refs import upsert_object_ref
+    from osaip_engine import recipes as engine_recipes
+    from osaip_engine.recipes import InputSource
+    from osaip_shared.recipes import config_hash
+
+    existing = (
+        await session.execute(
+            select(Recipe).where(Recipe.project_id == project.id, Recipe.name == "sales_enriched")
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return
+    source = (
+        await session.execute(
+            select(Dataset).where(Dataset.project_id == project.id, Dataset.name == DATASET_NAME)
+        )
+    ).scalar_one()
+    source_version = (
+        await session.execute(
+            select(DatasetVersion).where(
+                DatasetVersion.dataset_id == source.id,
+                DatasetVersion.version == source.current_version,
+            )
+        )
+    ).scalar_one()
+
+    config = {
+        "kind": "prepare",
+        "steps": [
+            {"op": "formula", "column": "margin", "expression": 'col("revenue") * 0.3'},
+        ],
+    }
+    recipe = Recipe(
+        id=new_id(),
+        project_id=project.id,
+        name="sales_enriched",
+        kind="prepare",
+        config=config,
+        config_hash=config_hash(config),
+        purpose_codes=["demo"],
+        created_by=admin.id,
+    )
+    output = Dataset(
+        id=new_id(),
+        project_id=project.id,
+        name="sales_enriched",
+        kind="file",
+        description="Sales orders with a derived margin column (seeded recipe output).",
+        legal_basis=source.legal_basis,
+        purpose_codes=source.purpose_codes,
+        params={"produced_by_recipe": True},
+        current_version=0,
+        created_by=admin.id,
+    )
+    session.add_all([recipe, output])
+    await session.flush()
+    session.add(RecipeInput(recipe_id=recipe.id, dataset_id=source.id, ordinal=0))
+    session.add(RecipeOutput(recipe_id=recipe.id, dataset_id=output.id, ordinal=0))
+
+    # Build v1 directly (blocking engine calls are fine in the seed CLI).
+    storage = _storage(settings)
+    dest_key = dataset_version_location(DEMO_KEY, "sales_enriched", 1)
+    con = engine_recipes.open_connection(storage.config)
+    try:
+        table = engine_recipes.compile_recipe(
+            con, "prepare", config, [InputSource(0, source_version.location)]
+        )
+        con.to_parquet(table, f"s3://{storage.config.bucket}/{dest_key}")
+    finally:
+        con.disconnect()
+    location = f"s3://{storage.config.bucket}/{dest_key}"
+    columns, row_count = duck.validate_parquet(storage.config, location)
+    profile = duck.profile_parquet(storage.config, location)
+    output.current_version = 1
+    session.add(
+        DatasetVersion(
+            id=new_id(),
+            dataset_id=output.id,
+            version=1,
+            location=location,
+            format="parquet",
+            schema_json={
+                "columns": [
+                    {
+                        "name": c.name,
+                        "type": c.type,
+                        "nullable": c.nullable,
+                        "classification": "none",
+                    }
+                    for c in columns
+                ]
+            },
+            row_count=row_count,
+            row_count_kind="exact",
+            profile_json=profile,
+            recipe_config_hash=recipe.config_hash,
+            input_versions={str(source.id): source.current_version},
+        )
+    )
+    await upsert_object_ref(
+        session,
+        kind="recipe",
+        project_id=project.id,
+        name="sales_enriched",
+        description="Prepare: add margin",
+        url_path=f"/p/{DEMO_KEY}?sel=recipe:{recipe.id}",
+    )
+    await upsert_object_ref(
+        session,
+        kind="dataset",
+        project_id=project.id,
+        name="sales_enriched",
+        description="Sales orders with margin (seeded).",
+        url_path=f"/p/{DEMO_KEY}/datasets/sales_enriched",
+    )
+    log.info("created sales_enriched recipe + built v1 (%s rows)", row_count)
+
+
 async def seed(session: AsyncSession, settings: Settings | None = None) -> None:
     settings = settings or get_settings()
     users = {
@@ -293,6 +418,7 @@ async def seed(session: AsyncSession, settings: Settings | None = None) -> None:
     await _ensure_members(session, project, users)
     await _ensure_welcome(session, admin)
     await _ensure_sales_dataset(session, settings, project, admin)
+    await _ensure_enriched_recipe(session, settings, project, admin)
     await _ensure_demo_src(settings)
     log.info("seed complete (idempotent)")
 

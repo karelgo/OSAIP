@@ -3,6 +3,41 @@
 All notable changes to OSAIP. Format loosely follows Keep a Changelog; the project is
 pre-1.0, so minor versions may break.
 
+## [0.3.0] — Phase 2 · Flow & recipes (2026-07-23)
+
+The transformation layer, and the canonical inspector + run-drawer patterns every
+later module reuses (spec §7 Phase 2; decisions in ADR-0007). AC e2e: CSV → prepare →
+join(Postgres) → group builds; a mid-flow edit rebuilds only the stale subset.
+
+### Added
+- **Recipes**: visual (prepare incl. select-columns, join, group, stack, split,
+  sample) + code (SQL, Python) with single-producer + cycle validation, canonical
+  Python-side config hashing (staleness), and before/after config audit
+  (reconstructability). `GET /flow` view-model with a per-dataset status machine.
+- **Engine** (`packages/engine`): Ibis→DuckDB recipe compilers; a safe AST expression
+  language for formula/filter/split (no eval/exec — CI grep-gated; chained comparisons
+  and division-by-zero handled); an allowlist SQL validator + secret-less execution
+  (defense-in-depth against `duckdb_secrets()`/`read_parquet('s3://…')` exfiltration).
+- **Preview** (§6.3(3)): `POST /recipes/{id}/preview` runs against sampled inputs and
+  accepts a draft config to preview unsaved edits — never writes.
+- **Jobs** (ADR-0007): a Postgres `FOR UPDATE SKIP LOCKED` queue + in-process
+  JobExecutor with heartbeat/requeue (poison cap) and cancel; `POST /builds`
+  (idempotent + coalescing) resolves and rebuilds only the stale upstream subset;
+  atomic per-dataset advisory-locked version flip with profile refresh + CP-1 floor;
+  S3 chunk logs with an offset tail; low-frequency job/step SSE.
+- **Python sandbox** (spec §3.2/§10): `osaip` SDK IO broker; subprocess with a minimal
+  env (no ambient credentials), per-limit rlimit guards, `unshare -n` network denial,
+  and a wall-clock kill; a compensating control blocks Python recipes on special-
+  category inputs until container isolation.
+- **Web**: the Flow canvas (`packages/canvas`, @xyflow/react + dagre, living-Flow edge
+  pulses), the canonical inspector (Configure · Preview · Runs · Lineage · Docs), the
+  run drawer, jobs list/detail, and a dataset Lineage tab.
+- **Seed v2.1**: a prebuilt `sales_enriched` recipe so the Flow renders alive.
+
+### Decisions
+ADR-0007 (job queue + JobExecutor, staleness hashing, log layout, sandbox incl.
+no-network, worker→api import trigger, CP-1 ratchet floor + CP-2 intersection).
+
 ## [0.2.0] — Phase 1 · Connections & datasets (2026-07-23)
 
 Data foundation (spec §7 Phase 1 + Compliance Pack CP-1/CP-2 v1). All three phase ACs
