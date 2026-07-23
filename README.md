@@ -8,7 +8,7 @@ tools, chat surfaces, evaluation, and governance — assembled from permissively
 open-source engines.
 
 - Build authority: [PROJECT_SPEC.md](PROJECT_SPEC.md)
-- Dutch public-sector compliance mapping: [COMPLIANCE_UWV.md](COMPLIANCE_UWV.md)
+- Dutch public-sector compliance mapping: [COMPLIANCE_Organisatie X.md](COMPLIANCE_Organisatie X.md)
 - Current phase plan: [docs/plans/phase-0.md](docs/plans/phase-0.md)
 - Decisions: [docs/adr/](docs/adr/)
 
