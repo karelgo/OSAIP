@@ -377,4 +377,154 @@ class DatasetVersion(Base):
     row_count: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     row_count_kind: Mapped[str | None] = mapped_column(String(10), nullable=True)
     profile_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Phase 2 staleness + reconstructability (ADR-0007 §2/§3): the producer's config
+    # hash, the input versions this build consumed, and a snapshot of the exact recipe
+    # config that produced this version.
+    recipe_config_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    input_versions: Mapped[dict[str, int] | None] = mapped_column(JSONB, nullable=True)
+    config_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime.datetime] = _created_at()
+
+
+# ── Phase 2: recipes, flow, jobs ─────────────────────────────────────────────────
+
+RECIPE_KINDS = ("prepare", "join", "group", "stack", "split", "sample", "sql", "python")
+
+
+class Recipe(Base):
+    """A transformation node in the Flow. `config` is the recipe-kind-specific JSON;
+    `config_hash` is computed in Python from the validated model (ADR-0007 §2).
+    Single-producer is enforced by the unique constraint on recipe_outputs."""
+
+    __tablename__ = "recipes"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('prepare', 'join', 'group', 'stack', 'split', 'sample', 'sql', 'python')",
+            name="kind",
+        ),
+        CheckConstraint("status IN ('active', 'archived')", name="status"),
+        UniqueConstraint("project_id", "name", name="uq_recipes_project_name"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    config_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    purpose_codes: Mapped[list[str]] = mapped_column(
+        ARRAY(String(100)), nullable=False, server_default=text("'{}'::text[]")
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()
+
+
+class RecipeInput(Base):
+    __tablename__ = "recipe_inputs"
+    __table_args__ = (
+        UniqueConstraint("recipe_id", "ordinal", name="uq_recipe_inputs_recipe_ordinal"),
+    )
+
+    recipe_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recipes.id", ondelete="CASCADE"), primary_key=True
+    )
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("datasets.id", ondelete="RESTRICT"), primary_key=True
+    )
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class RecipeOutput(Base):
+    """A dataset is produced by at most ONE recipe (spec §4 single-producer): the
+    unique constraint on dataset_id is GLOBAL, not per-recipe."""
+
+    __tablename__ = "recipe_outputs"
+    __table_args__ = (UniqueConstraint("dataset_id", name="uq_recipe_outputs_dataset"),)
+
+    recipe_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("recipes.id", ondelete="CASCADE"), primary_key=True
+    )
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("datasets.id", ondelete="RESTRICT"), primary_key=True
+    )
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('queued', 'running', 'succeeded', 'failed', 'cancelled')",
+            name="status",
+        ),
+        CheckConstraint(
+            "trigger IN ('manual', 'cron', 'dataset_updated', 'scenario')", name="trigger"
+        ),
+        Index("ix_jobs_status_created", "status", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="build")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
+    trigger: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    # Post-claim concurrency is guarded by status + heartbeat, not the row lock
+    # (ADR-0007 §1): the claim commit releases FOR UPDATE immediately.
+    heartbeat_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    claimed_by: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime.datetime] = _created_at()
+    started_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    finished_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class JobStep(Base):
+    __tablename__ = "job_steps"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('queued', 'running', 'succeeded', 'failed', 'skipped')", name="status"
+        ),
+        UniqueConstraint("job_id", "ordinal", name="uq_job_steps_job_ordinal"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
+    recipe_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True
+    )
+    target_dataset_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
+    log_prefix: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    log_size: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    finished_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

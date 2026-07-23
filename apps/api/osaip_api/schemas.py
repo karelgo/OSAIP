@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StatusOut(BaseModel):
@@ -198,3 +198,63 @@ class LogoutOut(BaseModel):
 
 class EmitTestEventOut(BaseModel):
     notification_id: str
+
+
+# ── Phase 2: recipes & flow ──────────────────────────────────────────────────────
+
+
+class RecipeOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    config: dict[str, Any]
+    config_hash: str
+    purpose_codes: list[str]
+    status: str
+    input_datasets: list[str]
+    output_datasets: list[str]
+    created_at: str
+    updated_at: str
+
+
+class RecipeListOut(BaseModel):
+    items: list[RecipeOut]
+    next_cursor: str | None
+
+
+class FlowDatasetOut(BaseModel):
+    name: str
+    kind: str
+    status: str
+    classification: str
+    bbn_level: str | None
+    confidentiality: str | None
+    current_version: int
+    row_count: int | None
+
+
+class FlowRecipeOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    input_datasets: list[str]
+    output_datasets: list[str]
+
+
+class FlowEdgeOut(BaseModel):
+    # `from` is a Python keyword; the wire key is "from" (see routers/flow.py).
+    from_: str = Field(alias="from")
+    to: str
+
+    model_config = {"populate_by_name": True}
+
+
+class FlowCapabilitiesOut(BaseModel):
+    can_edit: bool
+
+
+class FlowOut(BaseModel):
+    datasets: list[FlowDatasetOut]
+    recipes: list[FlowRecipeOut]
+    edges: list[FlowEdgeOut]
+    capabilities: FlowCapabilitiesOut

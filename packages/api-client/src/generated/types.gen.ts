@@ -494,6 +494,113 @@ export type EmitTestEventOut = {
 };
 
 /**
+ * FlowCapabilitiesOut
+ */
+export type FlowCapabilitiesOut = {
+    /**
+     * Can Edit
+     */
+    can_edit: boolean;
+};
+
+/**
+ * FlowDatasetOut
+ */
+export type FlowDatasetOut = {
+    /**
+     * Bbn Level
+     */
+    bbn_level: string | null;
+    /**
+     * Classification
+     */
+    classification: string;
+    /**
+     * Confidentiality
+     */
+    confidentiality: string | null;
+    /**
+     * Current Version
+     */
+    current_version: number;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Row Count
+     */
+    row_count: number | null;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * FlowEdgeOut
+ */
+export type FlowEdgeOut = {
+    /**
+     * From
+     */
+    from: string;
+    /**
+     * To
+     */
+    to: string;
+};
+
+/**
+ * FlowOut
+ */
+export type FlowOut = {
+    capabilities: FlowCapabilitiesOut;
+    /**
+     * Datasets
+     */
+    datasets: Array<FlowDatasetOut>;
+    /**
+     * Edges
+     */
+    edges: Array<FlowEdgeOut>;
+    /**
+     * Recipes
+     */
+    recipes: Array<FlowRecipeOut>;
+};
+
+/**
+ * FlowRecipeOut
+ */
+export type FlowRecipeOut = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Input Datasets
+     */
+    input_datasets: Array<string>;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Output Datasets
+     */
+    output_datasets: Array<string>;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -815,6 +922,132 @@ export type ProjectPatch = {
      * Name
      */
     name?: string | null;
+};
+
+/**
+ * RecipeCreate
+ */
+export type RecipeCreate = {
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Input Dataset Names
+     */
+    input_dataset_names: Array<string>;
+    /**
+     * Kind
+     */
+    kind: 'prepare' | 'join' | 'group' | 'stack' | 'split' | 'sample' | 'sql' | 'python';
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Output Names
+     */
+    output_names: Array<string>;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes?: Array<string> | null;
+};
+
+/**
+ * RecipeListOut
+ */
+export type RecipeListOut = {
+    /**
+     * Items
+     */
+    items: Array<RecipeOut>;
+    /**
+     * Next Cursor
+     */
+    next_cursor: string | null;
+};
+
+/**
+ * RecipeOut
+ */
+export type RecipeOut = {
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Config Hash
+     */
+    config_hash: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Input Datasets
+     */
+    input_datasets: Array<string>;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Output Datasets
+     */
+    output_datasets: Array<string>;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes: Array<string>;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * RecipePatch
+ */
+export type RecipePatch = {
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Input Dataset Names
+     */
+    input_dataset_names?: Array<string> | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Output Names
+     */
+    output_names?: Array<string> | null;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes?: Array<string> | null;
 };
 
 /**
@@ -1972,6 +2205,36 @@ export type SampleDatasetResponses = {
 
 export type SampleDatasetResponse = SampleDatasetResponses[keyof SampleDatasetResponses];
 
+export type GetFlowData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/flow';
+};
+
+export type GetFlowErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetFlowError = GetFlowErrors[keyof GetFlowErrors];
+
+export type GetFlowResponses = {
+    /**
+     * Successful Response
+     */
+    200: FlowOut;
+};
+
+export type GetFlowResponse = GetFlowResponses[keyof GetFlowResponses];
+
 export type ListMembersData = {
     body?: never;
     path: {
@@ -2065,6 +2328,177 @@ export type RemoveMemberResponses = {
 };
 
 export type RemoveMemberResponse = RemoveMemberResponses[keyof RemoveMemberResponses];
+
+export type ListRecipesData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/projects/{key}/recipes';
+};
+
+export type ListRecipesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListRecipesError = ListRecipesErrors[keyof ListRecipesErrors];
+
+export type ListRecipesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecipeListOut;
+};
+
+export type ListRecipesResponse = ListRecipesResponses[keyof ListRecipesResponses];
+
+export type CreateRecipeData = {
+    body: RecipeCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/recipes';
+};
+
+export type CreateRecipeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateRecipeError = CreateRecipeErrors[keyof CreateRecipeErrors];
+
+export type CreateRecipeResponses = {
+    /**
+     * Successful Response
+     */
+    201: RecipeOut;
+};
+
+export type CreateRecipeResponse = CreateRecipeResponses[keyof CreateRecipeResponses];
+
+export type ArchiveRecipeData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Recipe Id
+         */
+        recipe_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/recipes/{recipe_id}';
+};
+
+export type ArchiveRecipeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ArchiveRecipeError = ArchiveRecipeErrors[keyof ArchiveRecipeErrors];
+
+export type ArchiveRecipeResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecipeOut;
+};
+
+export type ArchiveRecipeResponse = ArchiveRecipeResponses[keyof ArchiveRecipeResponses];
+
+export type GetRecipeData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Recipe Id
+         */
+        recipe_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/recipes/{recipe_id}';
+};
+
+export type GetRecipeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetRecipeError = GetRecipeErrors[keyof GetRecipeErrors];
+
+export type GetRecipeResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecipeOut;
+};
+
+export type GetRecipeResponse = GetRecipeResponses[keyof GetRecipeResponses];
+
+export type PatchRecipeData = {
+    body: RecipePatch;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Recipe Id
+         */
+        recipe_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/recipes/{recipe_id}';
+};
+
+export type PatchRecipeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchRecipeError = PatchRecipeErrors[keyof PatchRecipeErrors];
+
+export type PatchRecipeResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecipeOut;
+};
+
+export type PatchRecipeResponse = PatchRecipeResponses[keyof PatchRecipeResponses];
 
 export type CreateUploadData = {
     body: BodyCreateUpload;

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { archiveConnection, archiveDataset, archiveProject, callback, createConnection, createDataset, createProject, createUpload, emitTestEvent, eventsStream, getConnection, getDataset, getMe, getProfile, getProject, healthz, inspectConnection, listAudit, listConnections, listDatasets, listMembers, listNotifications, listProjects, login, logout, markAllRead, markRead, type Options, patchConnection, patchDataset, patchPrefs, patchProject, projectAudit, readyz, recomputeProfile, removeMember, replaceMembers, sampleDataset, search, testConnection, verifyAuditChain } from '../sdk.gen';
-import type { ArchiveConnectionData, ArchiveConnectionError, ArchiveConnectionResponse, ArchiveDatasetData, ArchiveDatasetError, ArchiveDatasetResponse, ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, CallbackData, CallbackError, CreateConnectionData, CreateConnectionError, CreateConnectionResponse, CreateDatasetData, CreateDatasetError, CreateDatasetResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateUploadData, CreateUploadError, CreateUploadResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetConnectionData, GetConnectionError, GetConnectionResponse, GetDatasetData, GetDatasetError, GetDatasetResponse, GetMeData, GetMeResponse, GetProfileData, GetProfileError, GetProfileResponse, GetProjectData, GetProjectError, GetProjectResponse, HealthzData, HealthzResponse, InspectConnectionData, InspectConnectionError, InspectConnectionResponse, ListAuditData, ListAuditError, ListAuditResponse, ListConnectionsData, ListConnectionsError, ListConnectionsResponse, ListDatasetsData, ListDatasetsError, ListDatasetsResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchConnectionData, PatchConnectionError, PatchConnectionResponse, PatchDatasetData, PatchDatasetError, PatchDatasetResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RecomputeProfileData, RecomputeProfileError, RecomputeProfileResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SampleDatasetData, SampleDatasetError, SampleDatasetResponse, SearchData, SearchError, SearchResponse, TestConnectionData, TestConnectionError, TestConnectionResponse, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
+import { archiveConnection, archiveDataset, archiveProject, archiveRecipe, callback, createConnection, createDataset, createProject, createRecipe, createUpload, emitTestEvent, eventsStream, getConnection, getDataset, getFlow, getMe, getProfile, getProject, getRecipe, healthz, inspectConnection, listAudit, listConnections, listDatasets, listMembers, listNotifications, listProjects, listRecipes, login, logout, markAllRead, markRead, type Options, patchConnection, patchDataset, patchPrefs, patchProject, patchRecipe, projectAudit, readyz, recomputeProfile, removeMember, replaceMembers, sampleDataset, search, testConnection, verifyAuditChain } from '../sdk.gen';
+import type { ArchiveConnectionData, ArchiveConnectionError, ArchiveConnectionResponse, ArchiveDatasetData, ArchiveDatasetError, ArchiveDatasetResponse, ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, ArchiveRecipeData, ArchiveRecipeError, ArchiveRecipeResponse, CallbackData, CallbackError, CreateConnectionData, CreateConnectionError, CreateConnectionResponse, CreateDatasetData, CreateDatasetError, CreateDatasetResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateRecipeData, CreateRecipeError, CreateRecipeResponse, CreateUploadData, CreateUploadError, CreateUploadResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetConnectionData, GetConnectionError, GetConnectionResponse, GetDatasetData, GetDatasetError, GetDatasetResponse, GetFlowData, GetFlowError, GetFlowResponse, GetMeData, GetMeResponse, GetProfileData, GetProfileError, GetProfileResponse, GetProjectData, GetProjectError, GetProjectResponse, GetRecipeData, GetRecipeError, GetRecipeResponse, HealthzData, HealthzResponse, InspectConnectionData, InspectConnectionError, InspectConnectionResponse, ListAuditData, ListAuditError, ListAuditResponse, ListConnectionsData, ListConnectionsError, ListConnectionsResponse, ListDatasetsData, ListDatasetsError, ListDatasetsResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, ListRecipesData, ListRecipesError, ListRecipesResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchConnectionData, PatchConnectionError, PatchConnectionResponse, PatchDatasetData, PatchDatasetError, PatchDatasetResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, PatchRecipeData, PatchRecipeError, PatchRecipeResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RecomputeProfileData, RecomputeProfileError, RecomputeProfileResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SampleDatasetData, SampleDatasetError, SampleDatasetResponse, SearchData, SearchError, SearchResponse, TestConnectionData, TestConnectionError, TestConnectionResponse, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -730,6 +730,24 @@ export const sampleDatasetOptions = (options: Options<SampleDatasetData>) => que
     queryKey: sampleDatasetQueryKey(options)
 });
 
+export const getFlowQueryKey = (options: Options<GetFlowData>) => createQueryKey('getFlow', options);
+
+/**
+ * Get Flow
+ */
+export const getFlowOptions = (options: Options<GetFlowData>) => queryOptions<GetFlowResponse, GetFlowError, GetFlowResponse, ReturnType<typeof getFlowQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getFlow({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getFlowQueryKey(options)
+});
+
 export const listMembersQueryKey = (options: Options<ListMembersData>) => createQueryKey('listMembers', options);
 
 /**
@@ -772,6 +790,123 @@ export const removeMemberMutation = (options?: Partial<Options<RemoveMemberData>
     const mutationOptions: UseMutationOptions<RemoveMemberResponse, RemoveMemberError, Options<RemoveMemberData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await removeMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listRecipesQueryKey = (options: Options<ListRecipesData>) => createQueryKey('listRecipes', options);
+
+/**
+ * List Recipes
+ */
+export const listRecipesOptions = (options: Options<ListRecipesData>) => queryOptions<ListRecipesResponse, ListRecipesError, ListRecipesResponse, ReturnType<typeof listRecipesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listRecipes({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listRecipesQueryKey(options)
+});
+
+export const listRecipesInfiniteQueryKey = (options: Options<ListRecipesData>): QueryKey<Options<ListRecipesData>> => createQueryKey('listRecipes', options, true);
+
+/**
+ * List Recipes
+ */
+export const listRecipesInfiniteOptions = (options: Options<ListRecipesData>) => {
+    const opts = infiniteQueryOptions<ListRecipesResponse, ListRecipesError, InfiniteData<ListRecipesResponse>, QueryKey<Options<ListRecipesData>>, string | null | Pick<QueryKey<Options<ListRecipesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListRecipesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listRecipes({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listRecipesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Create Recipe
+ */
+export const createRecipeMutation = (options?: Partial<Options<CreateRecipeData>>): UseMutationOptions<CreateRecipeResponse, CreateRecipeError, Options<CreateRecipeData>> => {
+    const mutationOptions: UseMutationOptions<CreateRecipeResponse, CreateRecipeError, Options<CreateRecipeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createRecipe({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Archive Recipe
+ */
+export const archiveRecipeMutation = (options?: Partial<Options<ArchiveRecipeData>>): UseMutationOptions<ArchiveRecipeResponse, ArchiveRecipeError, Options<ArchiveRecipeData>> => {
+    const mutationOptions: UseMutationOptions<ArchiveRecipeResponse, ArchiveRecipeError, Options<ArchiveRecipeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await archiveRecipe({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getRecipeQueryKey = (options: Options<GetRecipeData>) => createQueryKey('getRecipe', options);
+
+/**
+ * Get Recipe
+ */
+export const getRecipeOptions = (options: Options<GetRecipeData>) => queryOptions<GetRecipeResponse, GetRecipeError, GetRecipeResponse, ReturnType<typeof getRecipeQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRecipe({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRecipeQueryKey(options)
+});
+
+/**
+ * Patch Recipe
+ */
+export const patchRecipeMutation = (options?: Partial<Options<PatchRecipeData>>): UseMutationOptions<PatchRecipeResponse, PatchRecipeError, Options<PatchRecipeData>> => {
+    const mutationOptions: UseMutationOptions<PatchRecipeResponse, PatchRecipeError, Options<PatchRecipeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await patchRecipe({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

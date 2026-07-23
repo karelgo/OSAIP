@@ -484,3 +484,39 @@ async def test_profile_readable_by_viewer(duck_extensions: None, login_as: Login
     assert read.json()["profile"]["row_count"] == 3
     blocked = await viewer.post("/api/v1/projects/dsp7/datasets/orders/profile")
     assert blocked.status_code == 403
+
+
+async def test_archive_blocked_when_used_by_recipe(
+    duck_extensions: None, login_as: LoginAs
+) -> None:
+    """A dataset wired as an active recipe's input cannot be archived (Phase 2 graph
+    rule) — the recipe must be re-wired or archived first."""
+    admin = await login_as("ds-admin8", "ds-admin8@osaip.dev")
+    await _project(admin, "dsp8")
+    upload_id = await _upload(admin, "dsp8")
+    await admin.post(
+        "/api/v1/projects/dsp8/datasets",
+        json={"name": "orders", "source": {"kind": "upload", "upload_id": upload_id}, **CP2},
+    )
+    recipe = await admin.post(
+        "/api/v1/projects/dsp8/recipes",
+        json={
+            "name": "clean",
+            "kind": "prepare",
+            "config": {"kind": "prepare", "steps": [{"op": "rename", "mapping": {"a": "b"}}]},
+            "input_dataset_names": ["orders"],
+            "output_names": ["orders_clean"],
+        },
+    )
+    assert recipe.status_code == 201, recipe.text
+
+    blocked = await admin.delete("/api/v1/projects/dsp8/datasets/orders")
+    assert blocked.status_code == 409
+    assert blocked.json()["type"] == "urn:osaip:problem:conflict"
+    assert "clean" in blocked.json()["detail"]
+
+    # archive the recipe first → the input frees up and can be archived
+    assert (
+        await admin.delete(f"/api/v1/projects/dsp8/recipes/{recipe.json()['id']}")
+    ).status_code == 200
+    assert (await admin.delete("/api/v1/projects/dsp8/datasets/orders")).status_code == 200

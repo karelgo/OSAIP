@@ -19,7 +19,15 @@ from osaip_api.audit import write_audit
 from osaip_api.auth.deps import CurrentUser
 from osaip_api.db import get_session
 from osaip_api.events import publish_event
-from osaip_api.models import Connection, Dataset, DatasetVersion, Secret
+from osaip_api.models import (
+    Connection,
+    Dataset,
+    DatasetVersion,
+    Recipe,
+    RecipeInput,
+    RecipeOutput,
+    Secret,
+)
 from osaip_api.object_refs import remove_object_ref, upsert_object_ref
 from osaip_api.permissions import ProjectContext, load_project_context
 from osaip_api.problem import Problem
@@ -579,6 +587,27 @@ async def archive_dataset(
 ) -> dict[str, Any]:
     ctx = await load_project_context(session, user, key, min_role="editor")
     dataset = await _get_dataset(session, ctx, name)
+    # A dataset wired into an active recipe (as input or output) cannot be archived out
+    # from under it — the recipe must be re-wired or archived first (Phase 2 graph rule).
+    input_ref = (
+        select(Recipe.name)
+        .join(RecipeInput, RecipeInput.recipe_id == Recipe.id)
+        .where(RecipeInput.dataset_id == dataset.id, Recipe.status == "active")
+    )
+    output_ref = (
+        select(Recipe.name)
+        .join(RecipeOutput, RecipeOutput.recipe_id == Recipe.id)
+        .where(RecipeOutput.dataset_id == dataset.id, Recipe.status == "active")
+    )
+    referencing = (await session.execute(input_ref.union(output_ref))).scalars().all()
+    if referencing:
+        raise Problem(
+            409,
+            title="Dataset is used by a recipe",
+            detail=f"Active recipe(s) {sorted(referencing)} reference this dataset.",
+            hint="Archive or re-wire those recipes first.",
+            slug="conflict",
+        )
     dataset.status = "archived"
     await remove_object_ref(session, kind="dataset", project_id=ctx.project.id, name=dataset.name)
     await publish_event(
