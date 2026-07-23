@@ -1,7 +1,7 @@
 # Phase 0 — Foundation & app shell
 
 Status: **approved** (user, 2026-07-22). Decisions: adopt Compliance Pack P0 items
-CP-7/12/13/14 (COMPLIANCE_Organisatie X.md §5); product name **OSAIP** (`osaip` packages, `@osaip`
+CP-7/12/13/14 (COMPLIANCE_NL.md §5); product name **OSAIP** (`osaip` packages, `@osaip`
 npm scope, Keycloak realm `osaip`); CI on GitHub Actions. Draft was adversarially
 reviewed by 4 verifier agents; their blockers/majors are folded in below.
 

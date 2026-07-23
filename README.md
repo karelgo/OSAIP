@@ -8,13 +8,13 @@ tools, chat surfaces, evaluation, and governance — assembled from permissively
 open-source engines.
 
 - Build authority: [PROJECT_SPEC.md](PROJECT_SPEC.md)
-- Dutch public-sector compliance mapping: [COMPLIANCE_Organisatie X.md](COMPLIANCE_Organisatie X.md)
-- Current phase plan: [docs/plans/phase-0.md](docs/plans/phase-0.md)
+- Dutch public-sector compliance mapping: [COMPLIANCE_NL.md](COMPLIANCE_NL.md)
+- Current phase plan: [docs/plans/phase-1.md](docs/plans/phase-1.md)
 - Decisions: [docs/adr/](docs/adr/)
 
 ## Status
 
-Phase 0 (foundation & app shell) is under construction.
+Phase 0 (foundation & app shell) is complete; Phase 1 (connections & datasets) is under construction.
 
 ## Quickstart (dev)
 

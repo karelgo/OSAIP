@@ -3,7 +3,7 @@
 Status: Accepted · 2026-07-22 · Phase 0 · Amends spec §7 Phase 0 (user-approved)
 
 ## Context
-COMPLIANCE_Organisatie X.md §5 defines a Compliance Pack; items CP-7, CP-12, CP-13, CP-14 are
+COMPLIANCE_NL.md §5 defines a Compliance Pack; items CP-7, CP-12, CP-13, CP-14 are
 tagged [P0]. The user approved folding them into Phase 0. Some sub-elements genuinely
 belong later; this ADR records what ships now and every explicit deferral, so no
 sub-element is silently dropped.
