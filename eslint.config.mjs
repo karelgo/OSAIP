@@ -36,4 +36,11 @@ export default tseslint.config(
     files: ["**/*.{js,cjs,mjs}", "**/*.config.{ts,js,cjs,mjs}", "**/.storybook/**"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
+  {
+    // Playwright specs are glue over the untyped API JSON (the generated client isn't
+    // used here — we exercise the wire contract directly), so `any` is expected.
+    files: ["apps/web/e2e/**/*.ts"],
+    languageOptions: { globals: { ...globals.node } },
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
+  },
 );

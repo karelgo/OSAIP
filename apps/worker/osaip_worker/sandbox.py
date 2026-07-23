@@ -6,6 +6,7 @@ compensating control for that gap (blocking BSN/bijzonder inputs) lives in the b
 path, not here.
 """
 
+import functools
 import json
 import os
 import subprocess
@@ -65,20 +66,40 @@ def _apply_limits() -> None:  # pragma: no cover — runs in the child, before e
 
 def _command(script_path: str) -> list[str]:
     """`python -I` (isolated) running the recipe. On Linux, wrap in `unshare -n` to
-    deny network (LOCKED no-network; degraded-and-documented on macOS dev)."""
+    deny network (LOCKED no-network). Where the kernel forbids unprivileged network
+    namespaces (some CI runners / containers without CAP_SYS_ADMIN), degrade and log —
+    the compensating BSN gate still blocks special-category inputs."""
     python = os.environ.get("OSAIP_SANDBOX_PYTHON", sys.executable)
     base = [python, "-I", script_path]
-    if _IS_LINUX and _network_isolation_available():
-        # -n = new network namespace with no interfaces; -r maps root so it needs no
-        # privilege. Falls back (below) if unshare is missing.
-        return ["unshare", "-n", "-r", *base]
-    return base
+    prefix = _unshare_prefix()
+    return [*prefix, *base]
 
 
-def _network_isolation_available() -> bool:
+@functools.cache
+def _unshare_prefix() -> tuple[str, ...]:
+    """The `unshare` invocation that actually works here, or () if none does. Probed
+    once: `which` finding unshare is not enough — creating a network namespace needs
+    unprivileged user namespaces, which some environments disable."""
+    if not _IS_LINUX or os.environ.get("OSAIP_SANDBOX_NO_NETNS") == "1":
+        return ()
     from shutil import which
 
-    return which("unshare") is not None
+    if which("unshare") is None:
+        return ()
+    # `-r` maps the caller to root inside the new userns so `-n` needs no privilege.
+    for candidate in (("unshare", "-rn"), ("unshare", "-n")):
+        try:
+            probe = subprocess.run(  # noqa: S603 — fixed argv, no shell
+                [*candidate, "true"],
+                capture_output=True,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if probe.returncode == 0:
+            return candidate
+    return ()
 
 
 # A tiny bootstrap that runs the user's code with the SDK importable. The user code is

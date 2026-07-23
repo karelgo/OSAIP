@@ -1,7 +1,6 @@
 """Python sandbox: env has no credentials, launches on the host OS, denies network
 (linux), enforces limits, and rejects a missing output."""
 
-import sys
 from pathlib import Path
 
 import pyarrow as pa
@@ -64,8 +63,11 @@ def test_user_error_surfaces_cleanly(tmp_path: Path) -> None:
     assert "boom" in excinfo.value.logs
 
 
-@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="unshare -n is Linux-only")
-def test_network_is_denied_on_linux(tmp_path: Path) -> None:
+def test_network_is_denied_when_netns_available(tmp_path: Path) -> None:
+    from osaip_worker.sandbox import _unshare_prefix
+
+    if not _unshare_prefix():
+        pytest.skip("network namespaces unavailable here (needs unprivileged userns)")
     inputs = _stage_input(tmp_path)
     output = str(tmp_path / "out.parquet")
     # A socket connect must fail with no network namespace interfaces.
