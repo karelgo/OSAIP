@@ -59,8 +59,8 @@ jobs:
           cache: pnpm
       - run: uv sync --frozen --all-packages
       - run: pnpm install --frozen-lockfile
-      - name: Boot stack (postgres, keycloak, api, worker)
-        run: docker compose -f infra/compose/docker-compose.yml --project-name osaip up -d --build --wait postgres keycloak api worker
+      - name: Boot stack (postgres, keycloak, seaweedfs, api, worker)
+        run: docker compose -f infra/compose/docker-compose.yml --project-name osaip up -d --build --wait postgres keycloak seaweedfs api worker
       - name: Seed demo data
         run: make seed
         env:

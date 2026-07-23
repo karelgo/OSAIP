@@ -27,6 +27,19 @@ class Settings(BaseSettings):
 
     docs_base_url: str = "https://github.com/osaip/osaip/blob/main/docs"
 
+    # Object storage (ADR-0006 §2). Host-run tools default to the published dev port;
+    # compose overrides the endpoint to seaweedfs:8333 (dual-hostname, like OIDC).
+    s3_endpoint: str = "localhost:8333"  # host:port, scheme-less
+    s3_bucket: str = "osaip"
+    s3_access_key: str = "osaipdev"
+    s3_secret_key: str = "osaip-dev-s3-secret"
+    s3_region: str = "us-east-1"
+    s3_use_ssl: bool = False
+
+    # Upload caps (plan §6): absolute cap enforced by middleware, xlsx cap in-handler.
+    upload_max_bytes: int = 100 * 1024 * 1024
+    upload_max_bytes_xlsx: int = 25 * 1024 * 1024
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -5,6 +5,11 @@ description = "OSAIP engine: DuckDB adapters, storage interface, connection chec
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg>=0.30",
+    # Exact pin — extension ABI/inference/profile stability (ADR-0006 §3)
+    "duckdb==1.5.5",
+    "pyarrow>=20.0",
+    "boto3>=1.38",
+    "anyio>=4.9",
 ]
 
 [build-system]

@@ -33,7 +33,7 @@ lint-web:
 
 ## e2e: Playwright acceptance suite against built output (stops the dev web container)
 e2e:
-	$(COMPOSE) up -d --wait postgres keycloak api worker
+	$(COMPOSE) up -d --wait postgres keycloak seaweedfs api worker
 	$(COMPOSE) stop web
 	OSAIP_DATABASE_URL=postgresql+asyncpg://osaip:osaip@localhost:5433/osaip uv run python -m osaip_api.seed
 	pnpm --filter @osaip/web e2e

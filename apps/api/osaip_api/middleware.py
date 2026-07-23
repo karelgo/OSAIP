@@ -1,6 +1,9 @@
-"""Cross-cutting HTTP middleware: API-Version header (CP-14) and CSRF (ADR-0001)."""
+"""Cross-cutting HTTP middleware: API-Version header (CP-14), CSRF (ADR-0001),
+and the upload body-size guard (plan §6)."""
 
+import json
 from collections.abc import Awaitable, Callable
+from typing import Any
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response
@@ -10,6 +13,89 @@ from osaip_api.problem import Problem, problem_response
 API_VERSION = "1.0.0"
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+class UploadSizeLimit:
+    """Raw ASGI guard for multipart uploads. Two layers (plan §6): reject early on
+    Content-Length, and count streamed bytes so chunked/lying clients are cut off
+    BEFORE Starlette's multipart parser spools the whole body to disk."""
+
+    def __init__(self, app: Any, max_bytes: int) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if (
+            scope["type"] != "http"
+            or scope["method"] != "POST"
+            or not scope["path"].endswith("/uploads")
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        headers = {k.decode("latin-1").lower(): v for k, v in scope.get("headers", [])}
+        content_length = headers.get("content-length")
+        if content_length is not None:
+            try:
+                if int(content_length) > self.max_bytes:
+                    await self._send_413(send)
+                    return
+            except ValueError:
+                pass
+
+        seen = 0
+        app_responded = False
+        we_responded = False
+
+        # On overflow we answer 413 OURSELVES and feed the app a disconnect: an
+        # exception raised inside receive() would be swallowed by FastAPI's form
+        # parsing and surface as a generic 400.
+        async def counting_receive() -> Any:
+            nonlocal seen, we_responded
+            if we_responded:
+                return {"type": "http.disconnect"}
+            message = await receive()
+            if message["type"] == "http.request":
+                seen += len(message.get("body", b""))
+                if seen > self.max_bytes:
+                    if not app_responded:
+                        await self._send_413(send)
+                        we_responded = True
+                    return {"type": "http.disconnect"}
+            return message
+
+        async def guarded_send(message: Any) -> None:
+            nonlocal app_responded
+            if we_responded:
+                return  # drop the app's late error response — the 413 already went out
+            app_responded = True
+            await send(message)
+
+        await self.app(scope, counting_receive, guarded_send)
+
+    async def _send_413(self, send: Any) -> None:
+        body = json.dumps(
+            {
+                "type": "urn:osaip:problem:upload-too-large",
+                "title": "Upload too large",
+                "status": 413,
+                "detail": f"Uploads are capped at {self.max_bytes // (1024 * 1024)} MB in this "
+                "phase.",
+                "hint": "Split the file or wait for background jobs (Phase 2) to lift the cap.",
+                "docs_url": None,
+            }
+        ).encode()
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [
+                    (b"content-type", b"application/problem+json"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": body})
 
 
 def register_middleware(app: FastAPI) -> None:

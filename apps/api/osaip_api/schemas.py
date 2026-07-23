@@ -38,6 +38,23 @@ class ConnectionTestOut(BaseModel):
     latency_ms: float
 
 
+class ColumnOut(BaseModel):
+    name: str
+    type: str
+    nullable: bool = True
+    classification: str = "none"  # CP-1, per-column
+
+
+class UploadOut(BaseModel):
+    upload_id: str
+    filename: str
+    format: str
+    # named `columns`, not `schema` — the latter collides with pydantic internals
+    columns: list[ColumnOut]
+    params: dict[str, Any]
+    preview: list[dict[str, Any]]
+
+
 class ProjectOut(BaseModel):
     key: str
     name: str

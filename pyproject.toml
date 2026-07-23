@@ -45,16 +45,27 @@ ignore = ["S101"]  # asserts are fine in tests; app code avoids them by conventi
 known-first-party = ["osaip_api", "osaip_worker", "osaip_shared", "osaip_engine", "osaip"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S105", "S106"]  # fixed dev-realm credentials in tests (ADR-0005)
+"**/tests/**" = ["S105", "S106", "S608"]  # fixed dev creds + SQL fixture assembly
 "apps/api/osaip_api/config.py" = ["S105"]  # documented dev-only defaults (ADR-0005)
 "apps/api/alembic/versions/*" = ["E501"]  # generated migrations keep autogen layout
+# The engine assembles DuckDB SQL from values DDL cannot bind (paths, identifiers,
+# CREATE SECRET fields). Everything passes sql_literal/sql_ident (safety.py) plus
+# upstream field validation; dedicated injection tests cover it (plan §6, ADR-0006).
+"packages/engine/osaip_engine/duck.py" = ["S608"]
 
 [tool.mypy]
 python_version = "3.12"
 plugins = []
 
 [[tool.mypy.overrides]]
-module = ["uuid6", "uuid6.*", "asyncpg", "asyncpg.*"]
+module = [
+    "uuid6", "uuid6.*",
+    "asyncpg", "asyncpg.*",
+    "boto3", "boto3.*",
+    "botocore", "botocore.*",
+    "duckdb", "duckdb.*",
+    "pyarrow", "pyarrow.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

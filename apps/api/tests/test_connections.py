@@ -14,6 +14,8 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from osaip_engine.storage import StorageConfig
+
 LoginAs = Callable[..., Awaitable[httpx.AsyncClient]]
 
 
@@ -232,6 +234,43 @@ async def test_audit_rows_written(
         .all()
     )
     assert all(customer_db["password"] not in row for row in details)
+
+
+async def test_s3_connection_test_ok_and_bad_creds_sanitized(
+    login_as: LoginAs, seaweed_config: "StorageConfig"
+) -> None:
+    admin = await login_as("sub-conn-admin10", "conn-admin10@osaip.dev")
+    await _make_project(admin, "connp10")
+    body = {
+        "name": "object-store",
+        "kind": "s3",
+        "config": {
+            "endpoint": seaweed_config.endpoint,
+            "bucket": seaweed_config.bucket,
+            "region": "us-east-1",
+            "use_ssl": False,
+            "access_key": seaweed_config.access_key,
+        },
+        "secret": seaweed_config.secret_key,
+        "legal_basis": "Art 6(1)(e) AVG — public task",
+        "purpose_codes": ["analytics.internal"],
+    }
+    created = await admin.post("/api/v1/projects/connp10/connections", json=body)
+    assert created.status_code == 201, created.text
+    connection_id = created.json()["id"]
+    ok = await admin.post(f"/api/v1/projects/connp10/connections/{connection_id}/test")
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["ok"] is True
+
+    await admin.patch(
+        f"/api/v1/projects/connp10/connections/{connection_id}",
+        json={"secret": "Wrong-S3-Secret-123"},
+    )
+    bad = await admin.post(f"/api/v1/projects/connp10/connections/{connection_id}/test")
+    assert bad.status_code == 400, bad.text
+    assert bad.json()["type"] == "urn:osaip:problem:connection-auth-failed"
+    for never_leaked in ("Wrong-S3-Secret-123", seaweed_config.secret_key):
+        assert never_leaked not in bad.text
 
 
 async def test_archive_blocked_when_in_use_then_ok(

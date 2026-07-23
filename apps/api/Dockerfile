@@ -16,5 +16,11 @@ COPY apps/api apps/api
 COPY apps/worker apps/worker
 RUN uv sync --frozen --all-packages
 
+# Bake DuckDB extensions into a HOME-independent directory (ADR-0006 §3). Runtime
+# connections set autoinstall/autoload=false and LOAD explicitly — a missing
+# extension fails loudly instead of silently downloading.
+ENV OSAIP_DUCKDB_EXTENSION_DIR=/opt/duckdb-extensions
+RUN uv run --no-sync python -c "from osaip_engine.duck import install_extensions; install_extensions()"
+
 EXPOSE 8000
 CMD ["uv", "run", "--no-sync", "uvicorn", "osaip_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

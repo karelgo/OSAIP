@@ -5,6 +5,7 @@ description = "OSAIP worker — job runner and schedulers (Phase 0: heartbeat + 
 requires-python = ">=3.12"
 dependencies = [
     "osaip-shared",
+    "osaip-engine",
     "sqlalchemy[asyncio]>=2.0.41",
     "asyncpg>=0.30",
     "pydantic-settings>=2.10",
@@ -12,6 +13,7 @@ dependencies = [
 
 [tool.uv.sources]
 osaip-shared = { workspace = true }
+osaip-engine = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

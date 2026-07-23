@@ -11,7 +11,7 @@ from osaip_api.auth.oidc import OidcClient
 from osaip_api.config import Settings, get_settings
 from osaip_api.db import make_engine, make_sessionmaker
 from osaip_api.events import EventBroker, asyncpg_dsn
-from osaip_api.middleware import register_middleware
+from osaip_api.middleware import UploadSizeLimit, register_middleware
 from osaip_api.problem import register_problem_handlers
 from osaip_api.routers import (
     audit_admin,
@@ -24,9 +24,11 @@ from osaip_api.routers import (
     notifications,
     projects,
     search,
+    uploads,
     well_known,
 )
 from osaip_api.secrets import Vault
+from osaip_engine.storage import Storage, StorageConfig
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -62,9 +64,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     # Fails fast on a malformed OSAIP_SECRET_KEY (ADR-0006 §1) — boot, not first write.
     app.state.vault = Vault(settings.secret_key)
+    # No network at construction: the bucket is ensured lazily on first storage use
+    # and by `make seed` (SeaweedFS does not auto-create buckets, ADR-0006 §2).
+    app.state.storage = Storage(
+        StorageConfig(
+            endpoint=settings.s3_endpoint,
+            bucket=settings.s3_bucket,
+            access_key=settings.s3_access_key,
+            secret_key=settings.s3_secret_key,
+            region=settings.s3_region,
+            use_ssl=settings.s3_use_ssl,
+        )
+    )
 
     register_problem_handlers(app)
     register_middleware(app)
+    app.add_middleware(UploadSizeLimit, max_bytes=settings.upload_max_bytes)
     # Transient cookie for the OIDC login dance ONLY (state/nonce/PKCE verifier);
     # auth sessions live server-side (ADR-0001).
     app.add_middleware(
@@ -81,6 +96,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(me.router, prefix="/api/v1")
     app.include_router(projects.router, prefix="/api/v1")
     app.include_router(connections.router, prefix="/api/v1")
+    app.include_router(uploads.router, prefix="/api/v1")
     app.include_router(audit_admin.router, prefix="/api/v1")
     app.include_router(search.router, prefix="/api/v1")
     app.include_router(events.router, prefix="/api/v1")

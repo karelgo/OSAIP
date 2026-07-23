@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "osaip-dev",
+      "credentials": [
+        {
+          "accessKey": "osaipdev",
+          "secretKey": "osaip-dev-s3-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

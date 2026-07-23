@@ -20,6 +20,7 @@ from testcontainers.postgres import PostgresContainer
 from osaip_api.app import create_app
 from osaip_api.auth.oidc import OidcClient
 from osaip_api.config import Settings
+from osaip_engine.storage import StorageConfig
 
 from .fake_idp import FakeIdp
 
@@ -40,8 +41,18 @@ def database_url() -> Iterator[str]:
 
 
 @pytest.fixture
-def settings(database_url: str) -> Settings:
-    return Settings(database_url=database_url, dev=True)
+def settings(database_url: str, seaweed_config: "StorageConfig") -> Settings:
+    return Settings(
+        database_url=database_url,
+        dev=True,
+        s3_endpoint=seaweed_config.endpoint,
+        s3_bucket=seaweed_config.bucket,
+        s3_access_key=seaweed_config.access_key,
+        s3_secret_key=seaweed_config.secret_key,
+        # Small caps so size-limit tests don't push real 100 MB bodies around.
+        upload_max_bytes=1024 * 1024,
+        upload_max_bytes_xlsx=64 * 1024,
+    )
 
 
 @pytest.fixture

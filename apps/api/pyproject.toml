@@ -19,6 +19,7 @@ dependencies = [
     "orjson>=3.10",
     "httpx>=0.28",
     "cryptography>=44.0",
+    "python-multipart>=0.0.20",
 ]
 
 [tool.uv.sources]

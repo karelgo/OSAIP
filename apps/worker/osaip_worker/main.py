@@ -1,15 +1,19 @@
 """Worker entrypoint.
 
-Phase 0 scope: heartbeat + housekeeping (event retention per ADR-0003, idempotency-key
-pruning). The Postgres-backed job queue (FOR UPDATE SKIP LOCKED) is Phase 2 (spec §3.2).
+Housekeeping: heartbeat, event retention (ADR-0003), idempotency-key pruning, and
+raw-upload pruning (Phase 1 plan §3: uploads are transient, >24h are deleted). The
+Postgres-backed job queue (FOR UPDATE SKIP LOCKED) is Phase 2 (spec §3.2).
 """
 
 import asyncio
+import datetime
 import logging
 import os
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+
+from osaip_engine.storage import Storage, StorageConfig
 
 log = logging.getLogger("osaip.worker")
 
@@ -17,6 +21,35 @@ HEARTBEAT_SECONDS = 30
 PRUNE_INTERVAL_SECONDS = 600
 EVENT_RETENTION_DAYS = 7
 IDEMPOTENCY_RETENTION_HOURS = 24
+UPLOAD_RETENTION_HOURS = 24
+
+
+def _storage_from_env() -> Storage:
+    return Storage(
+        StorageConfig(
+            endpoint=os.environ.get("OSAIP_S3_ENDPOINT", "localhost:8333"),
+            bucket=os.environ.get("OSAIP_S3_BUCKET", "osaip"),
+            access_key=os.environ.get("OSAIP_S3_ACCESS_KEY", "osaipdev"),
+            secret_key=os.environ.get("OSAIP_S3_SECRET_KEY", "osaip-dev-s3-secret"),
+            region=os.environ.get("OSAIP_S3_REGION", "us-east-1"),
+            use_ssl=os.environ.get("OSAIP_S3_USE_SSL", "0") in {"1", "true"},
+        )
+    )
+
+
+def _prune_uploads_sync(storage: Storage) -> int:
+    """Delete raw uploads older than the retention window (blocking boto3 — runs in
+    a thread). Uploads live at projects/<key>/uploads/<upload_id>/..."""
+    cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=UPLOAD_RETENTION_HOURS)
+    stale_prefixes: set[str] = set()
+    for key, last_modified in storage.list_keys("projects/"):
+        parts = key.split("/")
+        if len(parts) >= 4 and parts[2] == "uploads" and last_modified < cutoff:
+            stale_prefixes.add("/".join(parts[:4]))
+    removed = 0
+    for prefix in stale_prefixes:
+        removed += storage.delete_prefix(prefix)
+    return removed
 
 
 async def heartbeat(engine: AsyncEngine) -> None:
@@ -48,6 +81,13 @@ async def prune(engine: AsyncEngine) -> None:
             log.info("prune ok: %s events, %s idempotency keys", events.rowcount, keys.rowcount)
         except Exception:
             log.exception("prune failed")
+        try:
+            storage = _storage_from_env()
+            removed = await asyncio.to_thread(_prune_uploads_sync, storage)
+            if removed:
+                log.info("upload prune ok: %s objects removed", removed)
+        except Exception:
+            log.exception("upload prune failed")
         await asyncio.sleep(PRUNE_INTERVAL_SECONDS)
 
 

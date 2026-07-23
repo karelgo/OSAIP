@@ -3,6 +3,7 @@ secret values are write-only; driver errors surface only as sanitized engine
 exceptions translated here (ADR-0006 §4)."""
 
 import re
+import time
 from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
 
@@ -22,13 +23,17 @@ from osaip_api.problem import Problem
 from osaip_api.schemas import ConnectionListOut, ConnectionOut, ConnectionTestOut
 from osaip_api.secrets import Vault
 from osaip_engine import pg
+from osaip_engine.aio import run_engine
 from osaip_engine.errors import (
     AuthFailed,
     DatabaseNotFound,
     EngineError,
     HostUnreachable,
+    ObjectNotFound,
 )
+from osaip_engine.storage import Storage, StorageConfig
 from osaip_shared.ids import new_id
+from osaip_shared.storage_layout import project_prefix
 
 router = APIRouter(prefix="/projects/{key}/connections", tags=["connections"])
 
@@ -409,15 +414,40 @@ async def test_connection(
                     password=secret or "",
                 )
             )
-        else:
-            # s3 / duckdb_file tests land with the storage slice.
-            raise Problem(
-                400,
-                title="Test not available yet",
-                detail=f"Testing {connection.kind} connections is not implemented yet.",
-                hint="This arrives with the storage engine slice of Phase 1.",
-                slug="not-implemented",
+        elif connection.kind == "s3":
+            started = time.perf_counter()
+            probe = Storage(
+                StorageConfig(
+                    endpoint=connection.config["endpoint"],
+                    bucket=connection.config["bucket"],
+                    access_key=connection.config["access_key"],
+                    secret_key=secret or "",
+                    region=connection.config["region"],
+                    use_ssl=connection.config["use_ssl"],
+                )
             )
+            await run_engine(probe.check_access)
+            latency = (time.perf_counter() - started) * 1000
+        else:  # duckdb_file: the file must exist inside THIS project's storage prefix
+            path: str = connection.config["path"]
+            platform_storage: Storage = request.app.state.storage
+            required_prefix = (
+                f"s3://{platform_storage.config.bucket}/{project_prefix(ctx.project.key)}"
+            )
+            if not path.startswith(required_prefix):
+                raise Problem(
+                    422,
+                    title="Path outside project storage",
+                    detail="duckdb_file paths must live inside this project's storage prefix.",
+                    hint=f"Use a path under {required_prefix}.",
+                    slug="target-not-allowed",
+                )
+            key_in_bucket = path.removeprefix(f"s3://{platform_storage.config.bucket}/")
+            started = time.perf_counter()
+            exists = await run_engine(lambda: platform_storage.exists(key_in_bucket))
+            if not exists:
+                raise _engine_problem(ObjectNotFound())
+            latency = (time.perf_counter() - started) * 1000
     except EngineError as exc:
         raise _engine_problem(exc) from exc
     return {"ok": True, "latency_ms": round(latency, 1)}
@@ -428,6 +458,7 @@ def _engine_problem(exc: EngineError) -> Problem:
         AuthFailed: "connection-auth-failed",
         HostUnreachable: "connection-unreachable",
         DatabaseNotFound: "connection-db-not-found",
+        ObjectNotFound: "connection-object-not-found",
     }.get(type(exc), "connection-failed")
     return Problem(
         400,

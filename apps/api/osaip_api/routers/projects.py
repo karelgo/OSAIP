@@ -326,9 +326,7 @@ async def replace_members(
     for user_id, role in desired.items():
         # uuid.UUID, not the dict's string key: multi-row inserts (insertmanyvalues)
         # match returned sentinel values by exact type.
-        session.add(
-            ProjectMember(project_id=ctx.project.id, user_id=uuid.UUID(user_id), role=role)
-        )
+        session.add(ProjectMember(project_id=ctx.project.id, user_id=uuid.UUID(user_id), role=role))
 
     await write_audit(
         session,
