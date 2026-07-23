@@ -91,12 +91,14 @@ export function StepTimeline({
             <StatusDot status={step.status} />
             <span className="min-w-0 flex-1 truncate">
               <span className="font-mono text-xs text-muted">{step.recipe_name ?? "—"}</span>
-              <span className="mx-1.5 text-faint" aria-hidden>
+              {/* text-muted (not faint): the selected row sits on bg-accent-subtle,
+                  where faint is only 4.0:1 — below AA (CP-13). */}
+              <span className="mx-1.5 text-muted" aria-hidden>
                 →
               </span>
               <span className="font-medium">{step.target_dataset_name ?? "—"}</span>
             </span>
-            <span className="shrink-0 tabular-nums text-xs text-faint">
+            <span className="shrink-0 tabular-nums text-xs text-muted">
               {formatDuration(step.started_at, step.finished_at)}
             </span>
           </button>
