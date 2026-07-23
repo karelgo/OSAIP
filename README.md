@@ -9,12 +9,12 @@ open-source engines.
 
 - Build authority: [PROJECT_SPEC.md](PROJECT_SPEC.md)
 - Dutch public-sector compliance mapping: [COMPLIANCE_NL.md](COMPLIANCE_NL.md)
-- Current phase plan: [docs/plans/phase-1.md](docs/plans/phase-1.md)
+- Phase plans: [docs/plans/](docs/plans/)
 - Decisions: [docs/adr/](docs/adr/)
 
 ## Status
 
-Phase 0 (foundation & app shell) is complete; Phase 1 (connections & datasets) is under construction.
+Phases 0 (foundation & app shell) and 1 (connections & datasets) are complete; Phase 2 (Flow & recipes) is next.
 
 ## Quickstart (dev)
 

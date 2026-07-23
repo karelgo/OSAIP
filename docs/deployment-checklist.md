@@ -32,6 +32,17 @@ this list. Items marked [org] are organisational, not platform switches.
 - [ ] DigiD/eHerkenning brokering (if citizen/company login is ever needed) via the
       NLGov OIDC profiles — new ADR required first.
 
+## Secrets & object storage (Phase 1, ADR-0006)
+
+- [ ] **`OSAIP_SECRET_KEY` replaced** — never the dev default. One or more
+      urlsafe-base64 32-byte Fernet keys, comma-separated (first key encrypts;
+      rotation = prepend a new key). Store in a secret manager, not in compose files.
+- [ ] **S3 credentials replaced** (`OSAIP_S3_ACCESS_KEY`/`OSAIP_S3_SECRET_KEY`) and
+      scoped to the platform bucket only; `OSAIP_S3_USE_SSL=1` against a TLS
+      endpoint. SeaweedFS identities (`-s3.config`) are dev-only.
+- [ ] Bucket lifecycle/backup policy for `projects/` decided (datasets are versioned
+      parquet; raw uploads are transient and pruned after 24h by the worker).
+
 ## Time & evidence integrity (CP-7)
 
 - [ ] **NTP/chrony on every host** — the audit chain's `ts` values are evidence;

@@ -1,0 +1,6 @@
+order_id,amount,order_date,region,active
+1,12.50,2024-01-15,NL,true
+2,99.95,2024-01-16,BE,false
+3,7.25,2024-01-17,NL,true
+4,42.00,2024-01-18,DE,true
+5,15.10,2024-01-19,FR,false

@@ -69,9 +69,7 @@ async def _ensure_user(
     if user is None:
         # A user with this email may already exist from a real login (different sub,
         # e.g. a non-realm IdP in tests) — emails are unique, so reuse that row.
-        user = (
-            await session.execute(select(User).where(User.email == email))
-        ).scalar_one_or_none()
+        user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
     if user is None:
         user = User(oidc_sub=sub, email=email, display_name=name, is_site_admin=site_admin)
         session.add(user)

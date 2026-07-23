@@ -21,6 +21,8 @@ test("omnibar search finds sales_orders and opens the dataset page", async ({ pa
   await expect(result).toBeVisible();
   await result.click();
 
+  // Phase 1: the target is the REAL dataset page now (stub replaced).
   await expect(page).toHaveURL(/\/p\/demo\/datasets\/sales_orders$/);
-  await expect(page.getByTestId("stub-page")).toBeVisible();
+  await expect(page.getByTestId("dataset-tab-schema")).toBeVisible();
+  await expect(page.getByText("order_id")).toBeVisible();
 });

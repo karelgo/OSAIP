@@ -3,6 +3,40 @@
 All notable changes to OSAIP. Format loosely follows Keep a Changelog; the project is
 pre-1.0, so minor versions may break.
 
+## [0.2.0] — Phase 1 · Connections & datasets (2026-07-23)
+
+Data foundation (spec §7 Phase 1 + Compliance Pack CP-1/CP-2 v1). All three phase ACs
+are named Playwright specs: CSV upload → typed schema + profile (11), Postgres table
+registered → preview (12), bad creds fail cleanly without leaking (13).
+
+### Added
+- **Secrets**: MultiFernet vault (comma-separated key list, startup validation,
+  rotation = prepend + lazy re-encrypt, per-ciphertext key_id) — ADR-0006.
+- **Connections** (postgres · s3 · duckdb_file): admin-only CRUD + sanitized
+  test-connection + preview-first `inspect`; CP-2 legal basis + purpose codes
+  required; platform-DB SSRF denylist; archive blocked while referenced.
+- **Engine** (`packages/engine`): the single S3 storage interface (boto3,
+  SeaweedFS identities in dev), DuckDB adapter — exact-pinned duckdb, baked
+  extensions with autoinstall off, thread offload + bounded semaphore + interrupt
+  watchdog, injection-safe SQL assembly (`sql_literal`/`sql_ident` + tests),
+  explicit-aggregate profiling, READ_ONLY postgres/duckdb attaches.
+- **Datasets**: preview-first upload (raw → transient prefix, inferred schema +
+  preview, confirm → typed parquet v1 + stored profile; 413 stream guard, xlsx
+  zip-bomb cap) and register-from-connection (postgres table with reltuples
+  estimates, s3 parquet, duckdb_file); sample endpoint with version-keyed ETags
+  (304 = zero engine work) vs no-cache for external kinds; viewer-readable stored
+  profiles; CP-1 tri-field labels (classification/BBN/vertrouwelijkheid) on
+  datasets AND columns; `params` records inference decisions; SSE `datasets` topic.
+- **Web**: datasets list/detail (deep-linkable tabs, sample grid, profile stats,
+  inline column labels), upload + register panels, connections settings tab with
+  URL-synced tabs; bundle 207/300 KB gz.
+- **Seed v2**: per-resource idempotent; real `sales_orders` (60-row CSV → parquet +
+  profile) and `demo_src.sales` (40 rows) for the AC-2 path.
+
+### Fixed
+- Latent Phase-0 bug: members PUT crashed on adding 2+ new members at once
+  (string UUIDs vs insertmanyvalues sentinel matching).
+
 ## [0.1.0] — Phase 0 · Foundation & app shell (2026-07-22)
 
 First working vertical slice of the platform (spec §7 Phase 0 + Compliance Pack P0).
