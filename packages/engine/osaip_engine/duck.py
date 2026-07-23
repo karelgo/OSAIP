@@ -437,6 +437,75 @@ def profile_duckdb_file(storage: StorageConfig, s3_uri: str, table: str) -> dict
         conn.close()
 
 
+# ── Snapshot external inputs to parquet (recipe input resolution) ────────────────
+#
+# All recipe kinds read their inputs as parquet via read_parquet (ADR-0007 §4): it
+# keeps the compiler uniform and lets SQL recipes run on a secret-less connection.
+# External datasets (postgres tables, duckdb files) are snapshotted here first;
+# parquet-backed datasets are read directly by their existing v<N> URI.
+
+
+def snapshot_postgres_to_parquet(
+    target: PgAttach, table: str, storage: StorageConfig, dest_key: str, *, limit: int | None = None
+) -> int:
+    """COPY a (READ_ONLY-attached) Postgres table to s3://bucket/dest_key. `limit`
+    bounds preview snapshots; None takes the whole table. Returns the row count."""
+    conn = _connect(storage)
+    dest = f"s3://{storage.bucket}/{dest_key}"
+    limit_clause = f" LIMIT {int(limit)}" if limit is not None else ""
+    try:
+        _attach_postgres(conn, target, "src")
+        relation = f"src.{qualified_ident(table)}"
+        _with_timeout(
+            conn,
+            lambda: conn.execute(
+                f"COPY (SELECT * FROM {relation}{limit_clause}) TO {sql_literal(dest)} "
+                "(FORMAT parquet)"
+            ),
+        )
+        return int(
+            _one(
+                conn.execute(f"SELECT count(*) FROM read_parquet({sql_literal(dest)})").fetchone()
+            )[0]
+        )
+    except duckdb.Error as exc:
+        raise _map_duck_error(exc) from exc
+    finally:
+        conn.close()
+
+
+def snapshot_duckdb_file_to_parquet(
+    storage: StorageConfig,
+    s3_uri: str,
+    table: str,
+    dest_key: str,
+    *,
+    limit: int | None = None,
+) -> int:
+    conn = _connect(storage)
+    dest = f"s3://{storage.bucket}/{dest_key}"
+    limit_clause = f" LIMIT {int(limit)}" if limit is not None else ""
+    try:
+        _attach_duckdb_file(conn, s3_uri)
+        relation = f"src.{qualified_ident(table)}"
+        _with_timeout(
+            conn,
+            lambda: conn.execute(
+                f"COPY (SELECT * FROM {relation}{limit_clause}) TO {sql_literal(dest)} "
+                "(FORMAT parquet)"
+            ),
+        )
+        return int(
+            _one(
+                conn.execute(f"SELECT count(*) FROM read_parquet({sql_literal(dest)})").fetchone()
+            )[0]
+        )
+    except duckdb.Error as exc:
+        raise _map_duck_error(exc) from exc
+    finally:
+        conn.close()
+
+
 # ── Error mapping ────────────────────────────────────────────────────────────────
 
 

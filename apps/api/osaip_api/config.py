@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     upload_max_bytes: int = 100 * 1024 * 1024
     upload_max_bytes_xlsx: int = 25 * 1024 * 1024
 
+    # Recipe engine (Phase 2, ADR-0007): preview stays tightly capped; builds get a
+    # larger budget + spill directory. Concurrency bounds the engine thread pool.
+    duckdb_preview_memory_limit: str = "512MB"
+    duckdb_build_memory_limit: str = "2GB"
+    engine_concurrency: int = 3
+
 
 @lru_cache
 def get_settings() -> Settings:

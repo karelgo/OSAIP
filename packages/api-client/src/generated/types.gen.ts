@@ -1051,6 +1051,42 @@ export type RecipePatch = {
 };
 
 /**
+ * RecipePreview
+ */
+export type RecipePreview = {
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+};
+
+/**
+ * RecipePreviewOut
+ */
+export type RecipePreviewOut = {
+    /**
+     * Columns
+     */
+    columns: Array<ColumnOut>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Rows
+     */
+    rows: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+/**
  * SampleOut
  */
 export type SampleOut = {
@@ -2499,6 +2535,40 @@ export type PatchRecipeResponses = {
 };
 
 export type PatchRecipeResponse = PatchRecipeResponses[keyof PatchRecipeResponses];
+
+export type PreviewRecipeData = {
+    body: RecipePreview;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Recipe Id
+         */
+        recipe_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/recipes/{recipe_id}/preview';
+};
+
+export type PreviewRecipeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PreviewRecipeError = PreviewRecipeErrors[keyof PreviewRecipeErrors];
+
+export type PreviewRecipeResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecipePreviewOut;
+};
+
+export type PreviewRecipeResponse = PreviewRecipeResponses[keyof PreviewRecipeResponses];
 
 export type CreateUploadData = {
     body: BodyCreateUpload;

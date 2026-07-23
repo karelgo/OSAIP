@@ -31,13 +31,25 @@ from osaip_api.propagation import (
     legal_basis_union,
     purpose_intersection,
 )
+from osaip_api.recipe_execution import (
+    compile_and_execute_preview,
+    make_snapshot_prefix,
+    materialize_inputs,
+    plan_inputs,
+    resolve_inputs,
+)
 from osaip_api.recipes_service import (
     check_arity,
     load_graph,
     provision_outputs,
     would_create_cycle,
 )
-from osaip_api.schemas import RecipeListOut, RecipeOut
+from osaip_api.schemas import RecipeListOut, RecipeOut, RecipePreviewOut
+from osaip_api.sources import engine_problem
+from osaip_engine import recipes as engine_recipes
+from osaip_engine.aio import run_engine
+from osaip_engine.errors import EngineError
+from osaip_engine.storage import Storage
 from osaip_shared.ids import new_id
 from osaip_shared.recipes import (
     GroupConfig,
@@ -87,6 +99,13 @@ class RecipePatch(BaseModel):
     purpose_codes: list[str] | None = Field(default=None, max_length=20)
     input_dataset_names: list[str] | None = Field(default=None, min_length=1, max_length=64)
     output_names: list[str] | None = Field(default=None, min_length=1, max_length=8)
+
+
+class RecipePreview(BaseModel):
+    # Optional DRAFT config previews unsaved inspector/Monaco edits (§6.3(3)); it is
+    # validated and executed but NEVER persisted.
+    config: dict[str, Any] | None = None
+    limit: int = Field(default=100, ge=1, le=1000)
 
 
 def _client_ip(request: Request) -> str | None:
@@ -222,6 +241,59 @@ async def _get_recipe(session: AsyncSession, ctx: ProjectContext, recipe_id: str
             slug="not-found",
         )
     return recipe
+
+
+# ── Preview (§6.3(3): live sample, never writes) ─────────────────────────────────
+
+
+@router.post("/{recipe_id}/preview", response_model=RecipePreviewOut)
+async def preview_recipe(
+    key: str,
+    recipe_id: str,
+    body: RecipePreview,
+    request: Request,
+    user: CurrentUser,
+    session: DbSession,
+) -> dict[str, Any]:
+    ctx = await load_project_context(session, user, key, min_role="editor")
+    recipe = await _get_recipe(session, ctx, recipe_id)
+    if recipe.kind == "python":
+        raise Problem(
+            422,
+            title="No preview for Python recipes",
+            detail="Python recipes run in the sandbox and have no live preview in v1.",
+            hint="Build the recipe to run it.",
+            slug="preview-unavailable",
+        )
+    # DRAFT config previews unsaved edits; validated, never persisted.
+    config = (
+        _validate_config(recipe.kind, body.config) if body.config is not None else recipe.config
+    )
+
+    # Async phase: resolve versions + decrypt secrets. Sync phase (snapshots + compile
+    # + execute) is offloaded via run_engine — blocking DuckDB must not sit on the loop.
+    inputs = await resolve_inputs(session, recipe.id)
+    plans = await plan_inputs(session, request.app.state.vault, inputs)
+    storage: Storage = request.app.state.storage
+    settings = request.app.state.settings
+    prefix = make_snapshot_prefix(ctx.project.key, str(new_id()))
+
+    def _run() -> dict[str, Any]:
+        sources = materialize_inputs(storage, plans, prefix, limit=body.limit)
+        con = engine_recipes.open_connection(
+            storage.config, memory_limit=settings.duckdb_preview_memory_limit
+        )
+        try:
+            return compile_and_execute_preview(con, recipe.kind, config, sources, limit=body.limit)
+        finally:
+            con.disconnect()
+
+    try:
+        return await run_engine(_run)
+    except EngineError as exc:
+        raise engine_problem(exc) from exc
+    finally:
+        await run_engine(lambda: storage.delete_prefix(prefix))
 
 
 # ── Create ─────────────────────────────────────────────────────────────────────────

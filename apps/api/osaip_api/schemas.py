@@ -222,6 +222,12 @@ class RecipeListOut(BaseModel):
     next_cursor: str | None
 
 
+class RecipePreviewOut(BaseModel):
+    columns: list[ColumnOut]
+    rows: list[dict[str, Any]]
+    limit: int
+
+
 class FlowDatasetOut(BaseModel):
     name: str
     kind: str
