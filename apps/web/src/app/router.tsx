@@ -1,6 +1,7 @@
 // Route tree (§6.2 IA). Everything is deep-linkable; auth is enforced at the
 // `_authed` layout via /me (BFF session cookie, ADR-0001).
 import { getMeOptions } from "@osaip/api-client";
+import { Skeleton } from "@osaip/ui";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   Outlet,
@@ -9,16 +10,47 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
+import { Suspense, lazy } from "react";
 import { isUnauthenticated } from "../features/auth/api";
 import { LoginPage } from "../features/auth/LoginPage";
 import { DatasetPage } from "../features/datasets/DatasetPage";
 import { DatasetsPage } from "../features/datasets/DatasetsPage";
 import { HubPage } from "../features/hub/HubPage";
-import { ProjectHome } from "../features/projects/ProjectHome";
+import { JobsPage } from "../features/jobs/JobsPage";
+import { JobPage } from "../features/jobs/JobPage";
 import { ProjectsHome } from "../features/projects/ProjectsHome";
 import { ProjectSettings } from "../features/projects/ProjectSettings";
 import { AppShell } from "../features/shell/AppShell";
 import { StubPage } from "../features/shell/StubPage";
+
+// The Flow feature owns @xyflow + dagre (+ Monaco below it), so it is code-split at
+// the route level — it must never land in the entry chunk even though it is the
+// initial `/p/$key` view (§6.5 bundle budget).
+const FlowPage = lazy(() =>
+  import("../features/flow/FlowPage").then((module) => ({ default: module.FlowPage })),
+);
+
+function FlowRouteFallback() {
+  return (
+    <div className="p-6" data-testid="flow-loading">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="mt-4 h-[60vh] w-full" />
+    </div>
+  );
+}
+
+function FlowRoute() {
+  return (
+    <Suspense fallback={<FlowRouteFallback />}>
+      <FlowPage />
+    </Suspense>
+  );
+}
+
+// Inspector tab names are validated here without importing the (lazy) flow feature,
+// so the entry chunk stays free of @xyflow/Monaco. Keep in sync with INSPECTOR_TABS.
+const FLOW_INSPECTOR_TABS = ["configure", "preview", "runs", "lineage", "docs"] as const;
+type FlowInspectorTab = (typeof FLOW_INSPECTOR_TABS)[number];
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -78,10 +110,21 @@ const projectRoute = createRoute({
   component: Outlet,
 });
 
+// Flow is the project index. Selection, inspector tab, and the run drawer are all URL
+// state (§6.2) so the whole view is deep-linkable and reload-stable.
 const projectIndexRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/",
-  component: ProjectHome,
+  validateSearch: (search): { sel?: string; tab?: FlowInspectorTab; job?: string } => {
+    const next: { sel?: string; tab?: FlowInspectorTab; job?: string } = {};
+    if (typeof search.sel === "string") next.sel = search.sel;
+    if (FLOW_INSPECTOR_TABS.includes(search.tab as FlowInspectorTab)) {
+      next.tab = search.tab as FlowInspectorTab;
+    }
+    if (typeof search.job === "string") next.job = search.job;
+    return next;
+  },
+  component: FlowRoute,
 });
 
 // Settings tabs are deep-linkable (§6.7): ?tab= is validated here; the default
@@ -112,7 +155,6 @@ const STUBS: Array<[string, string, number]> = [
   ["hub-admin", "Hub administration", 7],
   ["ml", "ML Lab", 10],
   ["scenarios", "Scenarios", 8],
-  ["jobs", "Jobs", 2],
   ["deployments", "Deployments", 7],
   ["monitoring", "Monitoring", 7],
   ["dashboards", "Dashboards", 12],
@@ -135,8 +177,23 @@ const datasetsRoute = createRoute({
   component: DatasetsPage,
 });
 
+// Jobs list: status filter is deep-linkable (§6.7); "all" stays out of the URL.
+const jobsRoute = createRoute({
+  getParentRoute: () => projectRoute,
+  path: "/jobs",
+  validateSearch: (search): { status?: string } =>
+    typeof search.status === "string" ? { status: search.status } : {},
+  component: JobsPage,
+});
+
+const jobDetailRoute = createRoute({
+  getParentRoute: () => projectRoute,
+  path: "/jobs/$jobId",
+  component: JobPage,
+});
+
 // Dataset detail: inspector tabs are deep-linkable (§6.7); "schema" is the default.
-const DATASET_TABS = ["schema", "sample", "profile", "configure"] as const;
+const DATASET_TABS = ["schema", "sample", "profile", "lineage", "configure"] as const;
 export type DatasetTab = (typeof DATASET_TABS)[number];
 
 const datasetDetailRoute = createRoute({
@@ -158,6 +215,8 @@ const routeTree = rootRoute.addChildren([
         projectSettingsRoute,
         datasetsRoute,
         datasetDetailRoute,
+        jobsRoute,
+        jobDetailRoute,
         ...stubRoutes,
       ]),
     ]),

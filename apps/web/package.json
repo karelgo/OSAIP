@@ -12,13 +12,18 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^3.0.0",
     "@hookform/resolvers": "^5.1.0",
+    "@monaco-editor/react": "^4.7.0",
     "@osaip/api-client": "workspace:*",
+    "@osaip/canvas": "workspace:*",
     "@osaip/ui": "workspace:*",
     "@tanstack/react-query": "^5.80.0",
     "@tanstack/react-router": "^1.121.0",
     "@tanstack/react-table": "^8.21.3",
+    "@xyflow/react": "^12.11.2",
     "lucide-react": "^0.514.0",
+    "monaco-editor": "^0.56.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.57.0",

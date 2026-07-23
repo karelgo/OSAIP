@@ -1,0 +1,157 @@
+/* Canvas chrome — structural only. Every color is a design token (CSS variable the
+ * host app defines), never a literal, so the canvas inherits light/dark for free and
+ * stays brand-neutral. Motion respects prefers-reduced-motion (§6.4). */
+
+.osaip-flow {
+  width: 100%;
+  height: 100%;
+  /* Map xyflow's theming vars onto OSAIP tokens. */
+  --xy-edge-stroke-default: var(--color-border-strong);
+  --xy-edge-stroke-selected-default: var(--color-accent);
+  --xy-edge-stroke-width-default: 1.5;
+  --xy-handle-background-color-default: var(--color-surface);
+  --xy-handle-border-color-default: var(--color-border-strong);
+  --xy-background-pattern-dots-color-default: var(--color-border);
+  --xy-attribution-background-color-default: transparent;
+  --xy-controls-button-background-color-default: var(--color-surface);
+  --xy-controls-button-background-color-hover-default: var(--color-bg-subtle);
+  --xy-controls-button-color-default: var(--color-text-muted);
+  --xy-controls-button-color-hover-default: var(--color-text);
+  --xy-controls-button-border-color-default: var(--color-border);
+}
+
+/* ── Node ─────────────────────────────────────────────────────────────────── */
+
+.osaip-node {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 180px;
+  max-width: 260px;
+  border-radius: var(--radius-md, 8px);
+  border: 1.5px solid var(--osaip-node-status, var(--color-border));
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+}
+
+.osaip-node.is-process {
+  border-style: dashed;
+}
+
+.osaip-node.is-selected {
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/* Keyboard focus cursor — distinct from committed selection (§6.4). The wrapper
+ * class is set by GraphCanvas; Enter promotes focus to selection. */
+.react-flow__node.osaip-focused .osaip-node:not(.is-selected) {
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
+}
+
+.osaip-node__stripe {
+  width: 5px;
+  flex: 0 0 5px;
+  background: var(--osaip-node-domain, var(--color-accent));
+}
+
+.osaip-node__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.osaip-node__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.osaip-node__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.osaip-node__dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--osaip-node-status, var(--color-text-faint));
+}
+
+.osaip-node__meta {
+  margin-top: 2px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.osaip-node__badges {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.osaip-node__badge {
+  font-size: 10px;
+  line-height: 1.4;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.osaip-node .react-flow__handle {
+  width: 6px;
+  height: 6px;
+  min-width: 6px;
+  min-height: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+/* ── Living Flow motion (§6.4) ────────────────────────────────────────────── */
+
+.osaip-node.is-running .osaip-node__dot {
+  animation: osaip-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes osaip-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--osaip-node-status);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+    opacity: 0.55;
+  }
+}
+
+/* Running-subgraph edges pulse in the "running" status color. xyflow's `animated`
+ * class supplies the dash march; we recolor it and add nothing that literals. */
+.osaip-flow .react-flow__edge.animated path.react-flow__edge-path {
+  stroke: var(--color-status-info);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .osaip-node.is-running .osaip-node__dot {
+    animation: none;
+  }
+  .osaip-flow .react-flow__edge.animated path {
+    animation: none;
+  }
+}

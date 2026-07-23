@@ -35,7 +35,7 @@ export interface RailGroup {
 export const RAIL_GROUPS: RailGroup[] = [
   {
     label: null,
-    items: [{ label: "Flow", path: ".", icon: GitBranch, phase: 2 }],
+    items: [{ label: "Flow", path: ".", icon: GitBranch }],
   },
   {
     label: "Data",
@@ -75,7 +75,7 @@ export const RAIL_GROUPS: RailGroup[] = [
     label: "Automation",
     items: [
       { label: "Scenarios", path: "scenarios", icon: Timer, phase: 8 },
-      { label: "Jobs", path: "jobs", icon: Monitor, phase: 2 },
+      { label: "Jobs", path: "jobs", icon: Monitor },
     ],
   },
   {

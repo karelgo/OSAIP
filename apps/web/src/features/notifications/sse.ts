@@ -4,10 +4,14 @@
 import type { QueryClient } from "@tanstack/react-query";
 import {
   getDatasetQueryKey,
+  getFlowQueryKey,
+  getJobQueryKey,
   getMeQueryKey,
   listDatasetsQueryKey,
+  listJobsQueryKey,
   listNotificationsQueryKey,
   listProjectsQueryKey,
+  listRecipesQueryKey,
 } from "@osaip/api-client";
 import { toast } from "@osaip/ui";
 
@@ -19,15 +23,41 @@ export interface BusEvent {
   ts: string;
 }
 
-// Dataset queries embed the project key in their generated keys, and the SSE
-// handler only knows the topic — so we match on the stable `_id` segment, derived
-// from the generated key helpers themselves (never string literals).
+// Project-scoped queries embed the key in their generated keys, and the SSE handler
+// only knows the topic — so we match on the stable `_id` segment, derived from the
+// generated key helpers themselves (never string literals). `_id` is shared across a
+// query's plain and infinite variants, so one id set covers both.
 const DATASET_QUERY_IDS = new Set<string>(
   [
     listDatasetsQueryKey({ path: { key: "" } }),
     getDatasetQueryKey({ path: { key: "", name: "" } }),
   ].map(([entry]) => entry._id),
 );
+const FLOW_QUERY_IDS = new Set<string>(
+  [getFlowQueryKey({ path: { key: "" } })].map(([entry]) => entry._id),
+);
+const JOB_QUERY_IDS = new Set<string>(
+  [
+    listJobsQueryKey({ path: { key: "" } }),
+    getJobQueryKey({ path: { key: "", job_id: "" } }),
+  ].map(([entry]) => entry._id),
+);
+const RECIPE_QUERY_IDS = new Set<string>(
+  [listRecipesQueryKey({ path: { key: "" } })].map(([entry]) => entry._id),
+);
+
+function invalidateByIds(queryClient: QueryClient, ids: Set<string>) {
+  void queryClient.invalidateQueries({
+    predicate: (query) => {
+      const first = query.queryKey[0];
+      return (
+        typeof first === "object" &&
+        first !== null &&
+        ids.has((first as { _id?: string })._id ?? "")
+      );
+    },
+  });
+}
 
 // Topic → generated query keys to invalidate (never string literals).
 function invalidateForTopic(queryClient: QueryClient, topic: string) {
@@ -39,16 +69,19 @@ function invalidateForTopic(queryClient: QueryClient, topic: string) {
       void queryClient.invalidateQueries({ queryKey: listProjectsQueryKey() });
       break;
     case "datasets":
-      void queryClient.invalidateQueries({
-        predicate: (query) => {
-          const first = query.queryKey[0];
-          return (
-            typeof first === "object" &&
-            first !== null &&
-            DATASET_QUERY_IDS.has((first as { _id?: string })._id ?? "")
-          );
-        },
-      });
+      // A dataset change (schema, classification, new version) also shifts Flow status.
+      invalidateByIds(queryClient, DATASET_QUERY_IDS);
+      invalidateByIds(queryClient, FLOW_QUERY_IDS);
+      break;
+    case "jobs":
+      // A build step advancing changes both the run views and the Flow node statuses.
+      invalidateByIds(queryClient, JOB_QUERY_IDS);
+      invalidateByIds(queryClient, FLOW_QUERY_IDS);
+      break;
+    case "flow":
+      // Recipe/graph edits (create, patch, archive) reshape the Flow and the recipe list.
+      invalidateByIds(queryClient, FLOW_QUERY_IDS);
+      invalidateByIds(queryClient, RECIPE_QUERY_IDS);
       break;
     case "control":
       void queryClient.invalidateQueries(); // reset: cursor predates retention
@@ -89,10 +122,9 @@ export function startEventStream(queryClient: QueryClient): () => void {
     });
     source.addEventListener("projects", () => invalidateForTopic(queryClient, "projects"));
     source.addEventListener("datasets", () => invalidateForTopic(queryClient, "datasets"));
+    source.addEventListener("jobs", () => invalidateForTopic(queryClient, "jobs"));
+    source.addEventListener("flow", () => invalidateForTopic(queryClient, "flow"));
     source.addEventListener("control", () => invalidateForTopic(queryClient, "control"));
-    source.addEventListener("jobs", () => {
-      /* run drawer arrives in Phase 2 */
-    });
 
     source.onerror = () => {
       // EventSource reconnects on its own with Last-Event-ID; if the session died,

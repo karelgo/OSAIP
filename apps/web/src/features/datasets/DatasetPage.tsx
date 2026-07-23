@@ -24,6 +24,7 @@ import {
   archiveDataset,
   getDatasetOptions,
   getDatasetQueryKey,
+  getFlowOptions,
   getProfileOptions,
   getProfileQueryKey,
   getProjectOptions,
@@ -35,20 +36,21 @@ import {
 } from "@osaip/api-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { AlertTriangle, Archive, BarChart3 } from "lucide-react";
+import { AlertTriangle, Archive, ArrowUpRight, BarChart3, GitBranch } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { NativeSelect } from "../../lib/NativeSelect";
 import { PlainTable, STICKY_THEAD, ScrollRegion } from "../../lib/ScrollRegion";
 import { asProblem, problemToast } from "../../lib/problem";
+import { datasetNodeId, neighbors, nodeLabel, parseSelection } from "../flow/graph";
 import {
   BBN_LEVELS,
   CLASSIFICATIONS,
@@ -59,7 +61,7 @@ import {
   parsePurposeCodes,
 } from "./lib";
 
-type DatasetTab = "schema" | "sample" | "profile" | "configure";
+type DatasetTab = "schema" | "sample" | "profile" | "lineage" | "configure";
 
 const ROUTE_ID = "/_authed/_shell/p/$key/datasets/$datasetName";
 
@@ -139,6 +141,9 @@ export function DatasetPage() {
           <TabsTrigger value="profile" data-testid="dataset-tab-profile">
             Profile
           </TabsTrigger>
+          <TabsTrigger value="lineage" data-testid="dataset-tab-lineage">
+            Lineage
+          </TabsTrigger>
           <TabsTrigger value="configure" data-testid="dataset-tab-configure">
             Configure
           </TabsTrigger>
@@ -151,6 +156,9 @@ export function DatasetPage() {
         </TabsContent>
         <TabsContent value="profile">
           <ProfileTab projectKey={key} dataset={data} canEdit={canEdit} />
+        </TabsContent>
+        <TabsContent value="lineage">
+          <LineageTab projectKey={key} datasetName={data.name} />
         </TabsContent>
         <TabsContent value="configure">
           <ConfigureTab projectKey={key} dataset={data} canEdit={canEdit} />
@@ -533,6 +541,118 @@ function TopValueBars({ values }: { values: Array<{ value: unknown; count: numbe
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Lineage ──────────────────────────────────────────────────────────────────────
+
+function LineageTab({ projectKey, datasetName }: { projectKey: string; datasetName: string }) {
+  const flow = useQuery(getFlowOptions({ path: { key: projectKey } }));
+
+  if (flow.isLoading) {
+    return (
+      <div className="space-y-2" data-testid="dataset-lineage-loading">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
+  if (flow.isError || !flow.data) {
+    return (
+      <EmptyState
+        icon={<AlertTriangle aria-hidden className="size-8" />}
+        title="Couldn't load lineage"
+        description={asProblem(flow.error).hint ?? asProblem(flow.error).detail ?? "The API did not respond."}
+      >
+        <Button variant="secondary" onClick={() => flow.refetch()}>
+          Retry
+        </Button>
+      </EmptyState>
+    );
+  }
+
+  const nodeId = datasetNodeId(datasetName);
+  const { upstream, downstream } = neighbors(flow.data, nodeId);
+  const isProduced = upstream.length > 0;
+
+  return (
+    <div className="max-w-2xl space-y-6" data-testid="dataset-lineage">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted">
+          {isProduced
+            ? "This dataset is built by a recipe."
+            : "This dataset is a source — no recipe produces it."}
+        </p>
+        <Link
+          to="/p/$key"
+          params={{ key: projectKey }}
+          search={{ sel: nodeId }}
+          className="inline-flex items-center gap-1 text-sm text-accent-strong underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <GitBranch aria-hidden className="size-3.5" /> Open in Flow
+        </Link>
+      </div>
+
+      <LineageColumn
+        label="Produced by"
+        emptyLabel="No producing recipe — this is a source dataset."
+        nodes={upstream}
+        flow={flow.data}
+        projectKey={projectKey}
+      />
+      <LineageColumn
+        label="Consumed by"
+        emptyLabel="No recipe consumes this dataset yet."
+        nodes={downstream}
+        flow={flow.data}
+        projectKey={projectKey}
+      />
+    </div>
+  );
+}
+
+function LineageColumn({
+  label,
+  emptyLabel,
+  nodes,
+  flow,
+  projectKey,
+}: {
+  label: string;
+  emptyLabel: string;
+  nodes: string[];
+  flow: import("@osaip/api-client").FlowOut;
+  projectKey: string;
+}) {
+  return (
+    <div>
+      <h3 className="text-xs font-medium uppercase tracking-wide text-faint">{label}</h3>
+      {nodes.length === 0 ? (
+        <p className="mt-1 text-sm text-muted">{emptyLabel}</p>
+      ) : (
+        <ul className="mt-2 space-y-1">
+          {nodes.map((id) => {
+            const selection = parseSelection(id);
+            return (
+              <li key={id}>
+                <Link
+                  to="/p/$key"
+                  params={{ key: projectKey }}
+                  search={{ sel: id }}
+                  className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <ArrowUpRight aria-hidden className="size-3.5 text-faint" />
+                  <span className="min-w-0 flex-1 truncate">{nodeLabel(flow, id)}</span>
+                  <span className="shrink-0 text-xs text-faint">
+                    {selection?.kind === "recipe" ? "recipe" : "dataset"}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
