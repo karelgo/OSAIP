@@ -1,5 +1,6 @@
-// Project settings: General · Members · Audit — the canonical tab order pattern the
-// inspector reuses later (§6.3(2)). Capability flags from the server drive what is
+// Project settings: General · Members · Connections · Audit — the canonical tab
+// order pattern the inspector reuses later (§6.3(2)). The active tab lives in the
+// URL (?tab=, §6.7 deep-linkable). Capability flags from the server drive what is
 // editable; viewers see read-only affordances, never hidden-broken buttons (§6.1).
 import {
   Badge,
@@ -39,12 +40,16 @@ import {
   replaceMembers,
 } from "@osaip/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { AlertTriangle, Archive, UserPlus } from "lucide-react";
 import { useState } from "react";
+import type { SettingsTab } from "../../app/router";
+import { ConnectionsTab } from "./ConnectionsTab";
 
 export function ProjectSettings() {
   const { key } = useParams({ from: "/_authed/_shell/p/$key/settings" });
+  const search = useSearch({ from: "/_authed/_shell/p/$key/settings" });
+  const navigate = useNavigate();
   const project = useQuery(getProjectOptions({ path: { key } }));
 
   if (project.isLoading) {
@@ -71,20 +76,29 @@ export function ProjectSettings() {
     );
   }
 
-  const capabilities = project.data.capabilities as {
-    can_edit: boolean;
-    can_manage_members: boolean;
-    can_archive: boolean;
-  };
+  const capabilities = project.data.capabilities;
+  const tab: SettingsTab = search.tab ?? "general";
+
+  function setTab(next: string) {
+    void navigate({
+      to: "/p/$key/settings",
+      params: { key },
+      search: next === "general" ? {} : { tab: next as SettingsTab },
+      replace: true,
+    });
+  }
 
   return (
     <div className="mx-auto max-w-4xl p-6" data-testid="project-settings">
       <h1 className="text-xl font-semibold tracking-tight">Project settings</h1>
-      <Tabs defaultValue="general" className="mt-6">
+      <Tabs value={tab} onValueChange={setTab} className="mt-6">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="members" data-testid="members-tab">
             Members
+          </TabsTrigger>
+          <TabsTrigger value="connections" data-testid="connections-tab">
+            Connections
           </TabsTrigger>
           <TabsTrigger value="audit" data-testid="audit-tab">
             Audit
@@ -95,6 +109,9 @@ export function ProjectSettings() {
         </TabsContent>
         <TabsContent value="members">
           <MembersTab projectKey={key} canManage={capabilities.can_manage_members} />
+        </TabsContent>
+        <TabsContent value="connections">
+          <ConnectionsTab projectKey={key} canManage={capabilities.can_manage_connections} />
         </TabsContent>
         <TabsContent value="audit">
           <AuditTab projectKey={key} />

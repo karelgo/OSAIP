@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { archiveProject, callback, createProject, emitTestEvent, eventsStream, getMe, getProject, healthz, listAudit, listMembers, listNotifications, listProjects, login, logout, markAllRead, markRead, type Options, patchPrefs, patchProject, projectAudit, readyz, removeMember, replaceMembers, search, verifyAuditChain } from '../sdk.gen';
-import type { ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, CallbackData, CallbackError, CreateProjectData, CreateProjectError, CreateProjectResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetMeData, GetMeResponse, GetProjectData, GetProjectError, GetProjectResponse, HealthzData, HealthzResponse, ListAuditData, ListAuditError, ListAuditResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SearchData, SearchError, SearchResponse, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
+import { archiveConnection, archiveDataset, archiveProject, callback, createConnection, createDataset, createProject, createUpload, emitTestEvent, eventsStream, getConnection, getDataset, getMe, getProfile, getProject, healthz, inspectConnection, listAudit, listConnections, listDatasets, listMembers, listNotifications, listProjects, login, logout, markAllRead, markRead, type Options, patchConnection, patchDataset, patchPrefs, patchProject, projectAudit, readyz, recomputeProfile, removeMember, replaceMembers, sampleDataset, search, testConnection, verifyAuditChain } from '../sdk.gen';
+import type { ArchiveConnectionData, ArchiveConnectionError, ArchiveConnectionResponse, ArchiveDatasetData, ArchiveDatasetError, ArchiveDatasetResponse, ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, CallbackData, CallbackError, CreateConnectionData, CreateConnectionError, CreateConnectionResponse, CreateDatasetData, CreateDatasetError, CreateDatasetResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateUploadData, CreateUploadError, CreateUploadResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetConnectionData, GetConnectionError, GetConnectionResponse, GetDatasetData, GetDatasetError, GetDatasetResponse, GetMeData, GetMeResponse, GetProfileData, GetProfileError, GetProfileResponse, GetProjectData, GetProjectError, GetProjectResponse, HealthzData, HealthzResponse, InspectConnectionData, InspectConnectionError, InspectConnectionResponse, ListAuditData, ListAuditError, ListAuditResponse, ListConnectionsData, ListConnectionsError, ListConnectionsResponse, ListDatasetsData, ListDatasetsError, ListDatasetsResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchConnectionData, PatchConnectionError, PatchConnectionResponse, PatchDatasetData, PatchDatasetError, PatchDatasetResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RecomputeProfileData, RecomputeProfileError, RecomputeProfileResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SampleDatasetData, SampleDatasetError, SampleDatasetResponse, SearchData, SearchError, SearchResponse, TestConnectionData, TestConnectionError, TestConnectionResponse, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -433,6 +433,303 @@ export const projectAuditOptions = (options: Options<ProjectAuditData>) => query
     queryKey: projectAuditQueryKey(options)
 });
 
+export const listConnectionsQueryKey = (options: Options<ListConnectionsData>) => createQueryKey('listConnections', options);
+
+/**
+ * List Connections
+ */
+export const listConnectionsOptions = (options: Options<ListConnectionsData>) => queryOptions<ListConnectionsResponse, ListConnectionsError, ListConnectionsResponse, ReturnType<typeof listConnectionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listConnections({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listConnectionsQueryKey(options)
+});
+
+/**
+ * Create Connection
+ */
+export const createConnectionMutation = (options?: Partial<Options<CreateConnectionData>>): UseMutationOptions<CreateConnectionResponse, CreateConnectionError, Options<CreateConnectionData>> => {
+    const mutationOptions: UseMutationOptions<CreateConnectionResponse, CreateConnectionError, Options<CreateConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Archive Connection
+ */
+export const archiveConnectionMutation = (options?: Partial<Options<ArchiveConnectionData>>): UseMutationOptions<ArchiveConnectionResponse, ArchiveConnectionError, Options<ArchiveConnectionData>> => {
+    const mutationOptions: UseMutationOptions<ArchiveConnectionResponse, ArchiveConnectionError, Options<ArchiveConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await archiveConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getConnectionQueryKey = (options: Options<GetConnectionData>) => createQueryKey('getConnection', options);
+
+/**
+ * Get Connection
+ */
+export const getConnectionOptions = (options: Options<GetConnectionData>) => queryOptions<GetConnectionResponse, GetConnectionError, GetConnectionResponse, ReturnType<typeof getConnectionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getConnection({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getConnectionQueryKey(options)
+});
+
+/**
+ * Patch Connection
+ */
+export const patchConnectionMutation = (options?: Partial<Options<PatchConnectionData>>): UseMutationOptions<PatchConnectionResponse, PatchConnectionError, Options<PatchConnectionData>> => {
+    const mutationOptions: UseMutationOptions<PatchConnectionResponse, PatchConnectionError, Options<PatchConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await patchConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Inspect Connection
+ *
+ * Preview-first (§6.3(3)): schema + rows from a connection target BEFORE any
+ * dataset is registered. Editors use this in the register panel.
+ */
+export const inspectConnectionMutation = (options?: Partial<Options<InspectConnectionData>>): UseMutationOptions<InspectConnectionResponse, InspectConnectionError, Options<InspectConnectionData>> => {
+    const mutationOptions: UseMutationOptions<InspectConnectionResponse, InspectConnectionError, Options<InspectConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await inspectConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Test Connection
+ */
+export const testConnectionMutation = (options?: Partial<Options<TestConnectionData>>): UseMutationOptions<TestConnectionResponse, TestConnectionError, Options<TestConnectionData>> => {
+    const mutationOptions: UseMutationOptions<TestConnectionResponse, TestConnectionError, Options<TestConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await testConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listDatasetsQueryKey = (options: Options<ListDatasetsData>) => createQueryKey('listDatasets', options);
+
+/**
+ * List Datasets
+ */
+export const listDatasetsOptions = (options: Options<ListDatasetsData>) => queryOptions<ListDatasetsResponse, ListDatasetsError, ListDatasetsResponse, ReturnType<typeof listDatasetsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listDatasets({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listDatasetsQueryKey(options)
+});
+
+export const listDatasetsInfiniteQueryKey = (options: Options<ListDatasetsData>): QueryKey<Options<ListDatasetsData>> => createQueryKey('listDatasets', options, true);
+
+/**
+ * List Datasets
+ */
+export const listDatasetsInfiniteOptions = (options: Options<ListDatasetsData>) => {
+    const opts = infiniteQueryOptions<ListDatasetsResponse, ListDatasetsError, InfiniteData<ListDatasetsResponse>, QueryKey<Options<ListDatasetsData>>, string | null | Pick<QueryKey<Options<ListDatasetsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListDatasetsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listDatasets({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listDatasetsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Create Dataset
+ */
+export const createDatasetMutation = (options?: Partial<Options<CreateDatasetData>>): UseMutationOptions<CreateDatasetResponse, CreateDatasetError, Options<CreateDatasetData>> => {
+    const mutationOptions: UseMutationOptions<CreateDatasetResponse, CreateDatasetError, Options<CreateDatasetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createDataset({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Archive Dataset
+ */
+export const archiveDatasetMutation = (options?: Partial<Options<ArchiveDatasetData>>): UseMutationOptions<ArchiveDatasetResponse, ArchiveDatasetError, Options<ArchiveDatasetData>> => {
+    const mutationOptions: UseMutationOptions<ArchiveDatasetResponse, ArchiveDatasetError, Options<ArchiveDatasetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await archiveDataset({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getDatasetQueryKey = (options: Options<GetDatasetData>) => createQueryKey('getDataset', options);
+
+/**
+ * Get Dataset
+ */
+export const getDatasetOptions = (options: Options<GetDatasetData>) => queryOptions<GetDatasetResponse, GetDatasetError, GetDatasetResponse, ReturnType<typeof getDatasetQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getDataset({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getDatasetQueryKey(options)
+});
+
+/**
+ * Patch Dataset
+ */
+export const patchDatasetMutation = (options?: Partial<Options<PatchDatasetData>>): UseMutationOptions<PatchDatasetResponse, PatchDatasetError, Options<PatchDatasetData>> => {
+    const mutationOptions: UseMutationOptions<PatchDatasetResponse, PatchDatasetError, Options<PatchDatasetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await patchDataset({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getProfileQueryKey = (options: Options<GetProfileData>) => createQueryKey('getProfile', options);
+
+/**
+ * Get Profile
+ *
+ * Stored profile, readable by every project member (the POST recompute stays
+ * editor-only). Added for the Profile tab: reading must never require a write.
+ */
+export const getProfileOptions = (options: Options<GetProfileData>) => queryOptions<GetProfileResponse, GetProfileError, GetProfileResponse, ReturnType<typeof getProfileQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getProfile({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getProfileQueryKey(options)
+});
+
+/**
+ * Recompute Profile
+ */
+export const recomputeProfileMutation = (options?: Partial<Options<RecomputeProfileData>>): UseMutationOptions<RecomputeProfileResponse, RecomputeProfileError, Options<RecomputeProfileData>> => {
+    const mutationOptions: UseMutationOptions<RecomputeProfileResponse, RecomputeProfileError, Options<RecomputeProfileData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await recomputeProfile({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const sampleDatasetQueryKey = (options: Options<SampleDatasetData>) => createQueryKey('sampleDataset', options);
+
+/**
+ * Sample Dataset
+ */
+export const sampleDatasetOptions = (options: Options<SampleDatasetData>) => queryOptions<SampleDatasetResponse, SampleDatasetError, SampleDatasetResponse, ReturnType<typeof sampleDatasetQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await sampleDataset({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: sampleDatasetQueryKey(options)
+});
+
 export const listMembersQueryKey = (options: Options<ListMembersData>) => createQueryKey('listMembers', options);
 
 /**
@@ -475,6 +772,23 @@ export const removeMemberMutation = (options?: Partial<Options<RemoveMemberData>
     const mutationOptions: UseMutationOptions<RemoveMemberResponse, RemoveMemberError, Options<RemoveMemberData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await removeMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Create Upload
+ */
+export const createUploadMutation = (options?: Partial<Options<CreateUploadData>>): UseMutationOptions<CreateUploadResponse, CreateUploadError, Options<CreateUploadData>> => {
+    const mutationOptions: UseMutationOptions<CreateUploadResponse, CreateUploadError, Options<CreateUploadData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createUpload({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

@@ -81,6 +81,16 @@ export type AuditVerifyOut = {
 };
 
 /**
+ * Body_create_upload
+ */
+export type BodyCreateUpload = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * CapabilitiesOut
  */
 export type CapabilitiesOut = {
@@ -93,9 +103,384 @@ export type CapabilitiesOut = {
      */
     can_edit: boolean;
     /**
+     * Can Manage Connections
+     */
+    can_manage_connections: boolean;
+    /**
      * Can Manage Members
      */
     can_manage_members: boolean;
+};
+
+/**
+ * ColumnOut
+ */
+export type ColumnOut = {
+    /**
+     * Classification
+     */
+    classification?: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Nullable
+     */
+    nullable?: boolean;
+    /**
+     * Type
+     */
+    type: string;
+};
+
+/**
+ * ConnectionCreate
+ */
+export type ConnectionCreate = {
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Kind
+     */
+    kind: 'postgres' | 's3' | 'duckdb_file';
+    /**
+     * Legal Basis
+     *
+     * CP-2
+     */
+    legal_basis: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Purpose Codes
+     *
+     * CP-2
+     */
+    purpose_codes: Array<string>;
+    /**
+     * Secret
+     *
+     * write-only
+     */
+    secret?: string | null;
+};
+
+/**
+ * ConnectionListOut
+ */
+export type ConnectionListOut = {
+    /**
+     * Items
+     */
+    items: Array<ConnectionOut>;
+};
+
+/**
+ * ConnectionOut
+ */
+export type ConnectionOut = {
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Has Secret
+     */
+    has_secret: boolean;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Legal Basis
+     */
+    legal_basis: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes: Array<string>;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * ConnectionPatch
+ */
+export type ConnectionPatch = {
+    /**
+     * Config
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Legal Basis
+     */
+    legal_basis?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes?: Array<string> | null;
+    /**
+     * Secret
+     */
+    secret?: string | null;
+};
+
+/**
+ * ConnectionTestOut
+ */
+export type ConnectionTestOut = {
+    /**
+     * Latency Ms
+     */
+    latency_ms: number;
+    /**
+     * Ok
+     */
+    ok: boolean;
+};
+
+/**
+ * DatasetCreate
+ */
+export type DatasetCreate = {
+    /**
+     * Bbn Level
+     */
+    bbn_level?: 'bbn1' | 'bbn2' | 'bbn3' | null;
+    /**
+     * Classification
+     */
+    classification?: 'none' | 'persoonsgegevens' | 'bijzonder' | 'bsn';
+    /**
+     * Confidentiality
+     */
+    confidentiality?: 'intern' | 'vertrouwelijk' | 'geheim' | null;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Legal Basis
+     */
+    legal_basis?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes?: Array<string> | null;
+    source: SourceIn;
+};
+
+/**
+ * DatasetListItemOut
+ */
+export type DatasetListItemOut = {
+    /**
+     * Bbn Level
+     */
+    bbn_level: string | null;
+    /**
+     * Classification
+     */
+    classification: string;
+    /**
+     * Confidentiality
+     */
+    confidentiality: string | null;
+    /**
+     * Current Version
+     */
+    current_version: number;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Row Count
+     */
+    row_count: number | null;
+    /**
+     * Row Count Kind
+     */
+    row_count_kind: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * DatasetListOut
+ */
+export type DatasetListOut = {
+    /**
+     * Items
+     */
+    items: Array<DatasetListItemOut>;
+    /**
+     * Next Cursor
+     */
+    next_cursor: string | null;
+};
+
+/**
+ * DatasetOut
+ */
+export type DatasetOut = {
+    /**
+     * Bbn Level
+     */
+    bbn_level: string | null;
+    /**
+     * Classification
+     */
+    classification: string;
+    /**
+     * Columns
+     */
+    columns: Array<ColumnOut>;
+    /**
+     * Confidentiality
+     */
+    confidentiality: string | null;
+    /**
+     * Connection Id
+     */
+    connection_id: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Current Version
+     */
+    current_version: number;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Has Profile
+     */
+    has_profile: boolean;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Legal Basis
+     */
+    legal_basis: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Params
+     */
+    params: {
+        [key: string]: unknown;
+    };
+    /**
+     * Purpose Codes
+     */
+    purpose_codes: Array<string>;
+    /**
+     * Row Count
+     */
+    row_count: number | null;
+    /**
+     * Row Count Kind
+     */
+    row_count_kind: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * DatasetPatch
+ */
+export type DatasetPatch = {
+    /**
+     * Bbn Level
+     */
+    bbn_level?: 'bbn1' | 'bbn2' | 'bbn3' | null;
+    /**
+     * Classification
+     */
+    classification?: 'none' | 'persoonsgegevens' | 'bijzonder' | 'bsn' | null;
+    /**
+     * Column Classifications
+     */
+    column_classifications?: {
+        [key: string]: string;
+    } | null;
+    /**
+     * Confidentiality
+     */
+    confidentiality?: 'intern' | 'vertrouwelijk' | 'geheim' | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Legal Basis
+     */
+    legal_basis?: string | null;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes?: Array<string> | null;
 };
 
 /**
@@ -116,6 +501,36 @@ export type HttpValidationError = {
      * Detail
      */
     detail?: Array<ValidationError>;
+};
+
+/**
+ * InspectIn
+ */
+export type InspectIn = {
+    /**
+     * Path
+     */
+    path?: string | null;
+    /**
+     * Table
+     */
+    table?: string | null;
+};
+
+/**
+ * InspectOut
+ */
+export type InspectOut = {
+    /**
+     * Columns
+     */
+    columns: Array<ColumnOut>;
+    /**
+     * Preview
+     */
+    preview: Array<{
+        [key: string]: unknown;
+    }>;
 };
 
 /**
@@ -310,6 +725,18 @@ export type PrefsPatch = {
 };
 
 /**
+ * ProfileOut
+ */
+export type ProfileOut = {
+    /**
+     * Profile
+     */
+    profile: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * ProjectCreate
  */
 export type ProjectCreate = {
@@ -391,6 +818,26 @@ export type ProjectPatch = {
 };
 
 /**
+ * SampleOut
+ */
+export type SampleOut = {
+    /**
+     * Columns
+     */
+    columns: Array<ColumnOut>;
+    /**
+     * Limit
+     */
+    limit: number;
+    /**
+     * Rows
+     */
+    rows: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+/**
  * SearchItemOut
  */
 export type SearchItemOut = {
@@ -424,6 +871,66 @@ export type SearchOut = {
      * Items
      */
     items: Array<SearchItemOut>;
+};
+
+/**
+ * SourceIn
+ */
+export type SourceIn = {
+    /**
+     * Connection Id
+     */
+    connection_id?: string | null;
+    /**
+     * Kind
+     */
+    kind: 'upload' | 'table' | 's3' | 'duckdb_file';
+    /**
+     * Path
+     */
+    path?: string | null;
+    /**
+     * Table
+     */
+    table?: string | null;
+    /**
+     * Upload Id
+     */
+    upload_id?: string | null;
+};
+
+/**
+ * UploadOut
+ */
+export type UploadOut = {
+    /**
+     * Columns
+     */
+    columns: Array<ColumnOut>;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Format
+     */
+    format: string;
+    /**
+     * Params
+     */
+    params: {
+        [key: string]: unknown;
+    };
+    /**
+     * Preview
+     */
+    preview: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Upload Id
+     */
+    upload_id: string;
 };
 
 /**
@@ -957,6 +1464,514 @@ export type ProjectAuditResponses = {
 
 export type ProjectAuditResponse = ProjectAuditResponses[keyof ProjectAuditResponses];
 
+export type ListConnectionsData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/connections';
+};
+
+export type ListConnectionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListConnectionsError = ListConnectionsErrors[keyof ListConnectionsErrors];
+
+export type ListConnectionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConnectionListOut;
+};
+
+export type ListConnectionsResponse = ListConnectionsResponses[keyof ListConnectionsResponses];
+
+export type CreateConnectionData = {
+    body: ConnectionCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/connections';
+};
+
+export type CreateConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateConnectionError = CreateConnectionErrors[keyof CreateConnectionErrors];
+
+export type CreateConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    201: ConnectionOut;
+};
+
+export type CreateConnectionResponse = CreateConnectionResponses[keyof CreateConnectionResponses];
+
+export type ArchiveConnectionData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/connections/{connection_id}';
+};
+
+export type ArchiveConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ArchiveConnectionError = ArchiveConnectionErrors[keyof ArchiveConnectionErrors];
+
+export type ArchiveConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConnectionOut;
+};
+
+export type ArchiveConnectionResponse = ArchiveConnectionResponses[keyof ArchiveConnectionResponses];
+
+export type GetConnectionData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/connections/{connection_id}';
+};
+
+export type GetConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetConnectionError = GetConnectionErrors[keyof GetConnectionErrors];
+
+export type GetConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConnectionOut;
+};
+
+export type GetConnectionResponse = GetConnectionResponses[keyof GetConnectionResponses];
+
+export type PatchConnectionData = {
+    body: ConnectionPatch;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/connections/{connection_id}';
+};
+
+export type PatchConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchConnectionError = PatchConnectionErrors[keyof PatchConnectionErrors];
+
+export type PatchConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConnectionOut;
+};
+
+export type PatchConnectionResponse = PatchConnectionResponses[keyof PatchConnectionResponses];
+
+export type InspectConnectionData = {
+    body: InspectIn;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/connections/{connection_id}/inspect';
+};
+
+export type InspectConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InspectConnectionError = InspectConnectionErrors[keyof InspectConnectionErrors];
+
+export type InspectConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: InspectOut;
+};
+
+export type InspectConnectionResponse = InspectConnectionResponses[keyof InspectConnectionResponses];
+
+export type TestConnectionData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/connections/{connection_id}/test';
+};
+
+export type TestConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TestConnectionError = TestConnectionErrors[keyof TestConnectionErrors];
+
+export type TestConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConnectionTestOut;
+};
+
+export type TestConnectionResponse = TestConnectionResponses[keyof TestConnectionResponses];
+
+export type ListDatasetsData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/projects/{key}/datasets';
+};
+
+export type ListDatasetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListDatasetsError = ListDatasetsErrors[keyof ListDatasetsErrors];
+
+export type ListDatasetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetListOut;
+};
+
+export type ListDatasetsResponse = ListDatasetsResponses[keyof ListDatasetsResponses];
+
+export type CreateDatasetData = {
+    body: DatasetCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/datasets';
+};
+
+export type CreateDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateDatasetError = CreateDatasetErrors[keyof CreateDatasetErrors];
+
+export type CreateDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    201: DatasetOut;
+};
+
+export type CreateDatasetResponse = CreateDatasetResponses[keyof CreateDatasetResponses];
+
+export type ArchiveDatasetData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Name
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/datasets/{name}';
+};
+
+export type ArchiveDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ArchiveDatasetError = ArchiveDatasetErrors[keyof ArchiveDatasetErrors];
+
+export type ArchiveDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetOut;
+};
+
+export type ArchiveDatasetResponse = ArchiveDatasetResponses[keyof ArchiveDatasetResponses];
+
+export type GetDatasetData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Name
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/datasets/{name}';
+};
+
+export type GetDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDatasetError = GetDatasetErrors[keyof GetDatasetErrors];
+
+export type GetDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetOut;
+};
+
+export type GetDatasetResponse = GetDatasetResponses[keyof GetDatasetResponses];
+
+export type PatchDatasetData = {
+    body: DatasetPatch;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Name
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/datasets/{name}';
+};
+
+export type PatchDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchDatasetError = PatchDatasetErrors[keyof PatchDatasetErrors];
+
+export type PatchDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetOut;
+};
+
+export type PatchDatasetResponse = PatchDatasetResponses[keyof PatchDatasetResponses];
+
+export type GetProfileData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Name
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/datasets/{name}/profile';
+};
+
+export type GetProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProfileError = GetProfileErrors[keyof GetProfileErrors];
+
+export type GetProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileOut;
+};
+
+export type GetProfileResponse = GetProfileResponses[keyof GetProfileResponses];
+
+export type RecomputeProfileData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Name
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/datasets/{name}/profile';
+};
+
+export type RecomputeProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RecomputeProfileError = RecomputeProfileErrors[keyof RecomputeProfileErrors];
+
+export type RecomputeProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileOut;
+};
+
+export type RecomputeProfileResponse = RecomputeProfileResponses[keyof RecomputeProfileResponses];
+
+export type SampleDatasetData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Name
+         */
+        name: string;
+    };
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/projects/{key}/datasets/{name}/sample';
+};
+
+export type SampleDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SampleDatasetError = SampleDatasetErrors[keyof SampleDatasetErrors];
+
+export type SampleDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SampleOut;
+};
+
+export type SampleDatasetResponse = SampleDatasetResponses[keyof SampleDatasetResponses];
+
 export type ListMembersData = {
     body?: never;
     path: {
@@ -1050,6 +2065,36 @@ export type RemoveMemberResponses = {
 };
 
 export type RemoveMemberResponse = RemoveMemberResponses[keyof RemoveMemberResponses];
+
+export type CreateUploadData = {
+    body: BodyCreateUpload;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/uploads';
+};
+
+export type CreateUploadErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateUploadError = CreateUploadErrors[keyof CreateUploadErrors];
+
+export type CreateUploadResponses = {
+    /**
+     * Successful Response
+     */
+    201: UploadOut;
+};
+
+export type CreateUploadResponse = CreateUploadResponses[keyof CreateUploadResponses];
 
 export type ReadyzData = {
     body?: never;

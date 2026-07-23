@@ -3,7 +3,9 @@
 // no-hand-written-fetch rule (ADR-0001) — EventSource cannot be generated.
 import type { QueryClient } from "@tanstack/react-query";
 import {
+  getDatasetQueryKey,
   getMeQueryKey,
+  listDatasetsQueryKey,
   listNotificationsQueryKey,
   listProjectsQueryKey,
 } from "@osaip/api-client";
@@ -17,6 +19,16 @@ export interface BusEvent {
   ts: string;
 }
 
+// Dataset queries embed the project key in their generated keys, and the SSE
+// handler only knows the topic — so we match on the stable `_id` segment, derived
+// from the generated key helpers themselves (never string literals).
+const DATASET_QUERY_IDS = new Set<string>(
+  [
+    listDatasetsQueryKey({ path: { key: "" } }),
+    getDatasetQueryKey({ path: { key: "", name: "" } }),
+  ].map(([entry]) => entry._id),
+);
+
 // Topic → generated query keys to invalidate (never string literals).
 function invalidateForTopic(queryClient: QueryClient, topic: string) {
   switch (topic) {
@@ -25,6 +37,18 @@ function invalidateForTopic(queryClient: QueryClient, topic: string) {
       break;
     case "projects":
       void queryClient.invalidateQueries({ queryKey: listProjectsQueryKey() });
+      break;
+    case "datasets":
+      void queryClient.invalidateQueries({
+        predicate: (query) => {
+          const first = query.queryKey[0];
+          return (
+            typeof first === "object" &&
+            first !== null &&
+            DATASET_QUERY_IDS.has((first as { _id?: string })._id ?? "")
+          );
+        },
+      });
       break;
     case "control":
       void queryClient.invalidateQueries(); // reset: cursor predates retention
@@ -64,6 +88,7 @@ export function startEventStream(queryClient: QueryClient): () => void {
       }
     });
     source.addEventListener("projects", () => invalidateForTopic(queryClient, "projects"));
+    source.addEventListener("datasets", () => invalidateForTopic(queryClient, "datasets"));
     source.addEventListener("control", () => invalidateForTopic(queryClient, "control"));
     source.addEventListener("jobs", () => {
       /* run drawer arrives in Phase 2 */

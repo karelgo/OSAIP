@@ -706,6 +706,24 @@ async def sample_dataset(
     return response
 
 
+@router.get("/{name}/profile", response_model=ProfileOut)
+async def get_profile(key: str, name: str, user: CurrentUser, session: DbSession) -> dict[str, Any]:
+    """Stored profile, readable by every project member (the POST recompute stays
+    editor-only). Added for the Profile tab: reading must never require a write."""
+    ctx = await load_project_context(session, user, key, min_role="viewer")
+    dataset = await _get_dataset(session, ctx, name)
+    version = await _current_version(session, dataset)
+    if version is None or not version.profile_json:
+        raise Problem(
+            404,
+            title="No profile yet",
+            detail="This dataset has no stored profile.",
+            hint="A project editor can compute one from the Profile tab.",
+            slug="not-found",
+        )
+    return {"profile": version.profile_json}
+
+
 @router.post("/{name}/profile", response_model=ProfileOut)
 async def recompute_profile(
     key: str, name: str, request: Request, user: CurrentUser, session: DbSession

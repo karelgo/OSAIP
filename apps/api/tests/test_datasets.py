@@ -461,3 +461,26 @@ async def test_seed_is_idempotent_and_upgrades_phase0_db(
         assert await conn.fetchval("SELECT count(*) FROM sales") == 40
     finally:
         await conn.close()
+
+
+async def test_profile_readable_by_viewer(duck_extensions: None, login_as: LoginAs) -> None:
+    """Stored profiles are readable with the viewer role; recompute stays editor+."""
+    admin = await login_as("ds-admin7", "ds-admin7@osaip.dev")
+    await _project(admin, "dsp7")
+    upload_id = await _upload(admin, "dsp7")
+    await admin.post(
+        "/api/v1/projects/dsp7/datasets",
+        json={"name": "orders", "source": {"kind": "upload", "upload_id": upload_id}, **CP2},
+    )
+    members = [
+        {"email": "ds-admin7@osaip.dev", "role": "admin"},
+        {"email": "ds-viewer7@osaip.dev", "role": "viewer"},
+    ]
+    viewer = await login_as("ds-viewer7", "ds-viewer7@osaip.dev")
+    await admin.put("/api/v1/projects/dsp7/members", json={"members": members})
+
+    read = await viewer.get("/api/v1/projects/dsp7/datasets/orders/profile")
+    assert read.status_code == 200, read.text
+    assert read.json()["profile"]["row_count"] == 3
+    blocked = await viewer.post("/api/v1/projects/dsp7/datasets/orders/profile")
+    assert blocked.status_code == 403

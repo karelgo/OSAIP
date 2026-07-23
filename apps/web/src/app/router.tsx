@@ -11,6 +11,8 @@ import {
 } from "@tanstack/react-router";
 import { isUnauthenticated } from "../features/auth/api";
 import { LoginPage } from "../features/auth/LoginPage";
+import { DatasetPage } from "../features/datasets/DatasetPage";
+import { DatasetsPage } from "../features/datasets/DatasetsPage";
 import { HubPage } from "../features/hub/HubPage";
 import { ProjectHome } from "../features/projects/ProjectHome";
 import { ProjectsHome } from "../features/projects/ProjectsHome";
@@ -82,15 +84,23 @@ const projectIndexRoute = createRoute({
   component: ProjectHome,
 });
 
+// Settings tabs are deep-linkable (§6.7): ?tab= is validated here; the default
+// ("general") stays out of the URL.
+const SETTINGS_TABS = ["general", "members", "connections", "audit"] as const;
+export type SettingsTab = (typeof SETTINGS_TABS)[number];
+
 const projectSettingsRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/settings",
+  validateSearch: (search): { tab?: SettingsTab } =>
+    SETTINGS_TABS.includes(search.tab as SettingsTab)
+      ? { tab: search.tab as SettingsTab }
+      : {},
   component: ProjectSettings,
 });
 
 // Modules that ship in later phases: real routes, designed placeholder pages (§6.7).
 const STUBS: Array<[string, string, number]> = [
-  ["datasets", "Datasets", 1],
   ["notebooks", "Notebooks", 9],
   ["knowledge", "Knowledge banks", 4],
   ["semantic", "Semantic models", 5],
@@ -116,17 +126,26 @@ const stubRoutes = STUBS.map(([path, title, phase]) =>
   }),
 );
 
-// A dataset detail stub so seeded ⌘K results resolve to a real page (AC-6).
+// Datasets list: creation panels are URL state (?panel=), like ?new on /.
+const datasetsRoute = createRoute({
+  getParentRoute: () => projectRoute,
+  path: "/datasets",
+  validateSearch: (search): { panel?: "upload" | "register" } =>
+    search.panel === "upload" || search.panel === "register" ? { panel: search.panel } : {},
+  component: DatasetsPage,
+});
+
+// Dataset detail: inspector tabs are deep-linkable (§6.7); "schema" is the default.
+const DATASET_TABS = ["schema", "sample", "profile", "configure"] as const;
+export type DatasetTab = (typeof DATASET_TABS)[number];
+
 const datasetDetailRoute = createRoute({
   getParentRoute: () => projectRoute,
   path: "/datasets/$datasetName",
-  component: DatasetStub,
+  validateSearch: (search): { tab?: DatasetTab } =>
+    DATASET_TABS.includes(search.tab as DatasetTab) ? { tab: search.tab as DatasetTab } : {},
+  component: DatasetPage,
 });
-
-function DatasetStub() {
-  const { datasetName } = datasetDetailRoute.useParams();
-  return <StubPage title={`Dataset ${datasetName}`} phase={1} />;
-}
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
@@ -137,6 +156,7 @@ const routeTree = rootRoute.addChildren([
       projectRoute.addChildren([
         projectIndexRoute,
         projectSettingsRoute,
+        datasetsRoute,
         datasetDetailRoute,
         ...stubRoutes,
       ]),

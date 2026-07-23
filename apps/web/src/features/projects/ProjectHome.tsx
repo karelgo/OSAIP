@@ -14,20 +14,29 @@ import {
   Play,
 } from "lucide-react";
 
-const CHECKLIST = [
+interface ChecklistStep {
+  icon: typeof Cable;
+  title: string;
+  description: string;
+  path: string;
+  search?: Record<string, string>;
+  /** Set ⇒ the destination is still a phase-labeled stub. */
+  phase?: number;
+}
+
+const CHECKLIST: ChecklistStep[] = [
   {
     icon: Cable,
     title: "Connect a data source",
     description: "Postgres, S3, or file upload",
-    path: "datasets",
-    phase: 1,
+    path: "settings",
+    search: { tab: "connections" },
   },
   {
     icon: Database,
     title: "Register a dataset",
     description: "Schema, preview, and profiling",
     path: "datasets",
-    phase: 1,
   },
   {
     icon: Play,
@@ -93,6 +102,7 @@ export function ProjectHome() {
               <Link
                 to={step.path === "." ? "/p/$key" : `/p/$key/${step.path}`}
                 params={{ key }}
+                search={step.search}
                 className="flex items-start gap-3 rounded-lg border border-border bg-surface p-4 hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent-subtle">
@@ -104,7 +114,8 @@ export function ProjectHome() {
                     <ArrowRight aria-hidden className="size-3.5 text-faint" />
                   </span>
                   <span className="block text-xs text-muted">
-                    {step.description} · phase {step.phase}
+                    {step.description}
+                    {step.phase ? ` · phase ${step.phase}` : ""}
                   </span>
                 </span>
               </Link>

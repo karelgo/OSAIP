@@ -40,7 +40,7 @@ export const RAIL_GROUPS: RailGroup[] = [
   {
     label: "Data",
     items: [
-      { label: "Datasets", path: "datasets", icon: Database, phase: 1 },
+      { label: "Datasets", path: "datasets", icon: Database },
       { label: "Notebooks", path: "notebooks", icon: NotebookPen, phase: 9 },
     ],
   },
