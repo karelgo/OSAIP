@@ -65,6 +65,7 @@ module = [
     "botocore", "botocore.*",
     "duckdb", "duckdb.*",
     "pyarrow", "pyarrow.*",
+    "ibis", "ibis.*",
 ]
 ignore_missing_imports = true
 

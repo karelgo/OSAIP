@@ -17,6 +17,8 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy --strict packages/shared packages/engine apps/api/osaip_api apps/worker/osaip_worker
+      - name: No eval/exec in the engine (recipe expression language is AST-compiled)
+        run: '! grep -rnE "\beval\(|\bexec\(" packages/engine/osaip_engine/'
       - run: uv run pytest
 
   web:

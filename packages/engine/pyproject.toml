@@ -10,6 +10,10 @@ dependencies = [
     "pyarrow>=20.0",
     "boto3>=1.38",
     "anyio>=4.9",
+    # Recipe compilation (Phase 2). sqlglot pinned explicitly — ibis's upper
+    # bound floats and the SQL validator is built on sqlglot's parse tree (ADR-0007).
+    "ibis-framework[duckdb]>=12,<13",
+    "sqlglot>=30,<31",
 ]
 
 [build-system]
