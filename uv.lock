@@ -1066,8 +1066,14 @@ wheels = [
 
 [[package]]
 name = "osaip"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "packages/sdk" }
+dependencies = [
+    { name = "pyarrow" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pyarrow", specifier = ">=20.0" }]
 
 [[package]]
 name = "osaip-agents"
@@ -1178,6 +1184,7 @@ version = "0.1.0"
 source = { editable = "apps/worker" }
 dependencies = [
     { name = "asyncpg" },
+    { name = "osaip-api" },
     { name = "osaip-engine" },
     { name = "osaip-shared" },
     { name = "pydantic-settings" },
@@ -1187,6 +1194,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "asyncpg", specifier = ">=0.30" },
+    { name = "osaip-api", editable = "apps/api" },
     { name = "osaip-engine", editable = "packages/engine" },
     { name = "osaip-shared", editable = "packages/shared" },
     { name = "pydantic-settings", specifier = ">=2.10" },

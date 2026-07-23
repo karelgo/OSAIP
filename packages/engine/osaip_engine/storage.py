@@ -107,6 +107,24 @@ class Storage:
         except (ClientError, EndpointConnectionError) as exc:
             raise StorageError() from exc
 
+    def get_range(self, key: str, start: int) -> bytes:
+        """Bytes from `start` to end of object (RFC 9110 Range). Empty if `start` is at
+        or beyond the object end. Used to tail job logs by offset (ADR-0007 §6)."""
+        try:
+            response = self._client.get_object(
+                Bucket=self.config.bucket, Key=key, Range=f"bytes={start}-"
+            )
+            return bytes(response["Body"].read())
+        except EndpointConnectionError as exc:
+            raise HostUnreachable() from exc
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code", "")
+            if code in {"404", "NoSuchKey"}:
+                raise ObjectNotFound() from exc
+            if code in {"416", "InvalidRange"}:  # start past EOF → nothing new
+                return b""
+            raise StorageError() from exc
+
     def exists(self, key: str) -> bool:
         try:
             self._client.head_object(Bucket=self.config.bucket, Key=key)

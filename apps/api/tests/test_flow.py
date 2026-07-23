@@ -8,7 +8,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from osaip_api.models import Dataset, DatasetVersion
+from osaip_api.models import Dataset, DatasetVersion, Project
 from osaip_shared.ids import new_id
 
 from .test_recipes import PREPARE, _project, _seed_source
@@ -22,6 +22,7 @@ def _by_name(flow: dict, name: str) -> dict:
 
 async def _build_output(
     db_session: AsyncSession,
+    project_key: str,
     output_name: str,
     *,
     config_hash: str,
@@ -31,7 +32,11 @@ async def _build_output(
     """Simulate a worker build: add a DatasetVersion carrying the producer's config
     hash + consumed input versions, and flip current_version."""
     dataset = (
-        await db_session.execute(select(Dataset).where(Dataset.name == output_name))
+        await db_session.execute(
+            select(Dataset)
+            .join(Project, Project.id == Dataset.project_id)
+            .where(Dataset.name == output_name, Project.key == project_key)
+        )
     ).scalar_one()
     db_session.add(
         DatasetVersion(
@@ -82,7 +87,7 @@ async def test_flow_status_machine(login_as: LoginAs, db_session: AsyncSession) 
 
     # 2) built with matching hash + consumed input v1 → fresh ─────────────────────────
     await _build_output(
-        db_session, "clean_out", config_hash=recipe_hash, input_versions={str(src_id): 1}
+        db_session, "flow1", "clean_out", config_hash=recipe_hash, input_versions={str(src_id): 1}
     )
     flow = (await admin.get("/api/v1/projects/flow1/flow")).json()
     assert _by_name(flow, "clean_out")["status"] == "fresh"
@@ -110,6 +115,7 @@ async def test_flow_status_machine(login_as: LoginAs, db_session: AsyncSession) 
     # 4) re-build to consume input v2 → fresh again, then change recipe config → stale ─
     await _build_output(
         db_session,
+        "flow1",
         "clean_out",
         config_hash=recipe_hash,
         input_versions={str(src_id): 2},

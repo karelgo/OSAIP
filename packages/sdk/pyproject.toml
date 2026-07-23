@@ -1,9 +1,13 @@
 [project]
 name = "osaip"
-version = "0.1.0"
-description = "OSAIP SDK — osaip.dataset(...), .llm(...), .agent(...), .semantic(...)"
+version = "0.2.0"
+description = "OSAIP SDK — the sandboxed-recipe IO broker (osaip.input/output); .llm/.agent/.semantic land in later phases"
 requires-python = ">=3.12"
-dependencies = []
+# The baseline sandbox venv installs the SDK + pyarrow so recipes can read/write
+# parquet with no ambient credentials (ADR-0007 §5).
+dependencies = [
+    "pyarrow>=20.0",
+]
 
 [build-system]
 requires = ["hatchling"]

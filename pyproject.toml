@@ -72,3 +72,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["apps/api/tests", "apps/worker/tests", "packages"]
+# importlib mode: apps/api/tests, apps/worker/tests, and packages/*/tests are all
+# packages named `tests`; prepend mode collides on the basename.
+addopts = "--import-mode=importlib"
+consider_namespace_packages = true

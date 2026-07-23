@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from osaip_api.models import Dataset, Recipe, RecipeInput, RecipeOutput
+from osaip_api.models import Dataset, DatasetVersion, Recipe, RecipeInput, RecipeOutput
 from osaip_api.problem import Problem
 from osaip_shared.recipes import INPUT_ARITY, OUTPUT_ARITY
 
@@ -179,3 +179,80 @@ async def provision_outputs(
         datasets.append(dataset)
     await session.flush()
     return datasets
+
+
+# ── Staleness (ADR-0007 §2) ──────────────────────────────────────────────────────
+#
+# The single source of truth for "is this produced dataset up to date?", shared by the
+# flow view-model (routers/flow.py) and build resolution (build_service.py). A produced
+# dataset is STALE iff its producer's config_hash differs from the built version's
+# recipe_config_hash, OR any input's current_version is newer than the version this
+# build consumed; NEVER_BUILT if current_version == 0. `input_versions` is keyed by the
+# input DATASET id rendered as a string (the same key the worker writes at build time).
+
+
+def compute_staleness(
+    *,
+    current_version: int,
+    version: DatasetVersion | None,
+    producer_hash: str | None,
+    input_datasets: list[Dataset],
+) -> str:
+    """Freshness of a PRODUCED dataset: 'never_built' | 'stale' | 'fresh'."""
+    if current_version == 0 or version is None:
+        return "never_built"
+    if producer_hash != version.recipe_config_hash:
+        return "stale"
+    consumed = version.input_versions or {}
+    for input_dataset in input_datasets:
+        if input_dataset.current_version > consumed.get(str(input_dataset.id), 0):
+            return "stale"
+    return "fresh"
+
+
+async def _current_version(session: AsyncSession, dataset: Dataset) -> DatasetVersion | None:
+    if dataset.current_version == 0:
+        return None
+    return (
+        await session.execute(
+            select(DatasetVersion).where(
+                DatasetVersion.dataset_id == dataset.id,
+                DatasetVersion.version == dataset.current_version,
+            )
+        )
+    ).scalar_one_or_none()
+
+
+async def is_stale(session: AsyncSession, dataset: Dataset) -> bool:
+    """True iff a produced dataset needs a (re)build — never-built or stale. A source
+    dataset (produced by no recipe) is never stale."""
+    producer_id = (
+        await session.execute(
+            select(RecipeOutput.recipe_id).where(RecipeOutput.dataset_id == dataset.id)
+        )
+    ).scalar_one_or_none()
+    if producer_id is None:
+        return False
+    recipe = (await session.execute(select(Recipe).where(Recipe.id == producer_id))).scalar_one()
+    input_datasets = (
+        (
+            await session.execute(
+                select(Dataset)
+                .join(RecipeInput, RecipeInput.dataset_id == Dataset.id)
+                .where(RecipeInput.recipe_id == producer_id)
+                .order_by(RecipeInput.ordinal)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    version = await _current_version(session, dataset)
+    return (
+        compute_staleness(
+            current_version=dataset.current_version,
+            version=version,
+            producer_hash=recipe.config_hash,
+            input_datasets=list(input_datasets),
+        )
+        != "fresh"
+    )

@@ -116,12 +116,16 @@ services:
     environment: *api-env
     volumes:
       - ../../apps/worker/osaip_worker:/repo/apps/worker/osaip_worker
+      - ../../apps/api/osaip_api:/repo/apps/api/osaip_api
       - ../../packages/shared/osaip_shared:/repo/packages/shared/osaip_shared
       - ../../packages/engine/osaip_engine:/repo/packages/engine/osaip_engine
     depends_on:
       postgres:
         condition: service_healthy
       seaweedfs:
+        condition: service_healthy
+      # api owns `alembic upgrade head`; wait so the job loop never queries pre-0003 tables.
+      api:
         condition: service_healthy
 
   web:

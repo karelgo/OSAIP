@@ -91,6 +91,20 @@ export type BodyCreateUpload = {
 };
 
 /**
+ * BuildCreate
+ */
+export type BuildCreate = {
+    /**
+     * Force
+     */
+    force?: boolean;
+    /**
+     * Targets
+     */
+    targets: Array<string>;
+};
+
+/**
  * CapabilitiesOut
  */
 export type CapabilitiesOut = {
@@ -641,6 +655,76 @@ export type InspectOut = {
 };
 
 /**
+ * JobListOut
+ */
+export type JobListOut = {
+    /**
+     * Items
+     */
+    items: Array<JobOut>;
+    /**
+     * Next Cursor
+     */
+    next_cursor: string | null;
+};
+
+/**
+ * JobOut
+ */
+export type JobOut = {
+    /**
+     * Attempts
+     */
+    attempts: number;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Started At
+     */
+    started_at: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Steps
+     */
+    steps: Array<StepOut>;
+    /**
+     * Trigger
+     */
+    trigger: string;
+};
+
+/**
+ * LogTailOut
+ */
+export type LogTailOut = {
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Next Offset
+     */
+    next_offset: number;
+};
+
+/**
  * LogoutOut
  */
 export type LogoutOut = {
@@ -1166,6 +1250,44 @@ export type SourceIn = {
      * Upload Id
      */
     upload_id?: string | null;
+};
+
+/**
+ * StepOut
+ */
+export type StepOut = {
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Log Size
+     */
+    log_size: number;
+    /**
+     * Ordinal
+     */
+    ordinal: number;
+    /**
+     * Recipe Name
+     */
+    recipe_name: string | null;
+    /**
+     * Started At
+     */
+    started_at: string | null;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Target Dataset Name
+     */
+    target_dataset_name: string | null;
 };
 
 /**
@@ -1733,6 +1855,36 @@ export type ProjectAuditResponses = {
 
 export type ProjectAuditResponse = ProjectAuditResponses[keyof ProjectAuditResponses];
 
+export type CreateBuildData = {
+    body: BuildCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/builds';
+};
+
+export type CreateBuildErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateBuildError = CreateBuildErrors[keyof CreateBuildErrors];
+
+export type CreateBuildResponses = {
+    /**
+     * Successful Response
+     */
+    200: JobOut;
+};
+
+export type CreateBuildResponse = CreateBuildResponses[keyof CreateBuildResponses];
+
 export type ListConnectionsData = {
     body?: never;
     path: {
@@ -2270,6 +2422,160 @@ export type GetFlowResponses = {
 };
 
 export type GetFlowResponse = GetFlowResponses[keyof GetFlowResponses];
+
+export type ListJobsData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: {
+        /**
+         * Status
+         */
+        status?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Cursor
+         */
+        cursor?: string | null;
+    };
+    url: '/api/v1/projects/{key}/jobs';
+};
+
+export type ListJobsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListJobsError = ListJobsErrors[keyof ListJobsErrors];
+
+export type ListJobsResponses = {
+    /**
+     * Successful Response
+     */
+    200: JobListOut;
+};
+
+export type ListJobsResponse = ListJobsResponses[keyof ListJobsResponses];
+
+export type GetJobData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/jobs/{job_id}';
+};
+
+export type GetJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetJobError = GetJobErrors[keyof GetJobErrors];
+
+export type GetJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: JobOut;
+};
+
+export type GetJobResponse = GetJobResponses[keyof GetJobResponses];
+
+export type CancelJobData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/jobs/{job_id}/cancel';
+};
+
+export type CancelJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CancelJobError = CancelJobErrors[keyof CancelJobErrors];
+
+export type CancelJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: JobOut;
+};
+
+export type CancelJobResponse = CancelJobResponses[keyof CancelJobResponses];
+
+export type GetStepLogData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Job Id
+         */
+        job_id: string;
+        /**
+         * Ordinal
+         */
+        ordinal: number;
+    };
+    query?: {
+        /**
+         * After
+         */
+        after?: number;
+    };
+    url: '/api/v1/projects/{key}/jobs/{job_id}/steps/{ordinal}/log';
+};
+
+export type GetStepLogErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetStepLogError = GetStepLogErrors[keyof GetStepLogErrors];
+
+export type GetStepLogResponses = {
+    /**
+     * Successful Response
+     */
+    200: LogTailOut;
+};
+
+export type GetStepLogResponse = GetStepLogResponses[keyof GetStepLogResponses];
 
 export type ListMembersData = {
     body?: never;

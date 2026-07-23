@@ -9,12 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 LoginAs = Callable[..., Awaitable[httpx.AsyncClient]]
 
-CSV = (
-    b"order_id,amount,region\n"
-    b"1,10.0,NL\n"
-    b"2,20.0,BE\n"
-    b"3,30.0,NL\n"
-)
+CSV = b"order_id,amount,region\n1,10.0,NL\n2,20.0,BE\n3,30.0,NL\n"
 
 
 async def _dataset_from_upload(client: httpx.AsyncClient, key: str, name: str) -> None:
@@ -50,9 +45,7 @@ async def test_prepare_preview_and_draft_config(
             "name": "enriched",
             "kind": "prepare",
             "config": {
-                "steps": [
-                    {"op": "formula", "column": "vat", "expression": 'col("amount") * 0.21'}
-                ]
+                "steps": [{"op": "formula", "column": "vat", "expression": 'col("amount") * 0.21'}]
             },
             "input_dataset_names": ["orders"],
             "output_names": ["enriched"],
@@ -99,9 +92,7 @@ async def test_prepare_preview_and_draft_config(
     assert built == 0  # preview never builds
 
 
-async def test_python_recipe_has_no_preview(
-    duck_extensions: None, login_as: LoginAs
-) -> None:
+async def test_python_recipe_has_no_preview(duck_extensions: None, login_as: LoginAs) -> None:
     admin = await login_as("rp-admin2", "rp-admin2@osaip.dev")
     await _dataset_from_upload(admin, "rpp2", "orders")
     recipe = await admin.post(

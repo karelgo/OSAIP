@@ -4,6 +4,10 @@ version = "0.1.0"
 description = "OSAIP worker — job runner and schedulers (Phase 0: heartbeat + event pruning)"
 requires-python = ">=3.12"
 dependencies = [
+    # The worker imports osaip_api models/audit/events (single source of truth).
+    # Refactor trigger recorded in ADR-0007 §8: move these to packages/shared before
+    # Phase 8 scenario steps land in the worker.
+    "osaip-api",
     "osaip-shared",
     "osaip-engine",
     "sqlalchemy[asyncio]>=2.0.41",
@@ -12,6 +16,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+osaip-api = { workspace = true }
 osaip-shared = { workspace = true }
 osaip-engine = { workspace = true }
 

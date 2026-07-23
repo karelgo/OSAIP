@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { archiveConnection, archiveDataset, archiveProject, archiveRecipe, callback, createConnection, createDataset, createProject, createRecipe, createUpload, emitTestEvent, eventsStream, getConnection, getDataset, getFlow, getMe, getProfile, getProject, getRecipe, healthz, inspectConnection, listAudit, listConnections, listDatasets, listMembers, listNotifications, listProjects, listRecipes, login, logout, markAllRead, markRead, type Options, patchConnection, patchDataset, patchPrefs, patchProject, patchRecipe, previewRecipe, projectAudit, readyz, recomputeProfile, removeMember, replaceMembers, sampleDataset, search, testConnection, verifyAuditChain } from '../sdk.gen';
-import type { ArchiveConnectionData, ArchiveConnectionError, ArchiveConnectionResponse, ArchiveDatasetData, ArchiveDatasetError, ArchiveDatasetResponse, ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, ArchiveRecipeData, ArchiveRecipeError, ArchiveRecipeResponse, CallbackData, CallbackError, CreateConnectionData, CreateConnectionError, CreateConnectionResponse, CreateDatasetData, CreateDatasetError, CreateDatasetResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateRecipeData, CreateRecipeError, CreateRecipeResponse, CreateUploadData, CreateUploadError, CreateUploadResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetConnectionData, GetConnectionError, GetConnectionResponse, GetDatasetData, GetDatasetError, GetDatasetResponse, GetFlowData, GetFlowError, GetFlowResponse, GetMeData, GetMeResponse, GetProfileData, GetProfileError, GetProfileResponse, GetProjectData, GetProjectError, GetProjectResponse, GetRecipeData, GetRecipeError, GetRecipeResponse, HealthzData, HealthzResponse, InspectConnectionData, InspectConnectionError, InspectConnectionResponse, ListAuditData, ListAuditError, ListAuditResponse, ListConnectionsData, ListConnectionsError, ListConnectionsResponse, ListDatasetsData, ListDatasetsError, ListDatasetsResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, ListRecipesData, ListRecipesError, ListRecipesResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchConnectionData, PatchConnectionError, PatchConnectionResponse, PatchDatasetData, PatchDatasetError, PatchDatasetResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, PatchRecipeData, PatchRecipeError, PatchRecipeResponse, PreviewRecipeData, PreviewRecipeError, PreviewRecipeResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RecomputeProfileData, RecomputeProfileError, RecomputeProfileResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SampleDatasetData, SampleDatasetError, SampleDatasetResponse, SearchData, SearchError, SearchResponse, TestConnectionData, TestConnectionError, TestConnectionResponse, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
+import { archiveConnection, archiveDataset, archiveProject, archiveRecipe, callback, cancelJob, createBuild, createConnection, createDataset, createProject, createRecipe, createUpload, emitTestEvent, eventsStream, getConnection, getDataset, getFlow, getJob, getMe, getProfile, getProject, getRecipe, getStepLog, healthz, inspectConnection, listAudit, listConnections, listDatasets, listJobs, listMembers, listNotifications, listProjects, listRecipes, login, logout, markAllRead, markRead, type Options, patchConnection, patchDataset, patchPrefs, patchProject, patchRecipe, previewRecipe, projectAudit, readyz, recomputeProfile, removeMember, replaceMembers, sampleDataset, search, testConnection, verifyAuditChain } from '../sdk.gen';
+import type { ArchiveConnectionData, ArchiveConnectionError, ArchiveConnectionResponse, ArchiveDatasetData, ArchiveDatasetError, ArchiveDatasetResponse, ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, ArchiveRecipeData, ArchiveRecipeError, ArchiveRecipeResponse, CallbackData, CallbackError, CancelJobData, CancelJobError, CancelJobResponse, CreateBuildData, CreateBuildError, CreateBuildResponse, CreateConnectionData, CreateConnectionError, CreateConnectionResponse, CreateDatasetData, CreateDatasetError, CreateDatasetResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateRecipeData, CreateRecipeError, CreateRecipeResponse, CreateUploadData, CreateUploadError, CreateUploadResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetConnectionData, GetConnectionError, GetConnectionResponse, GetDatasetData, GetDatasetError, GetDatasetResponse, GetFlowData, GetFlowError, GetFlowResponse, GetJobData, GetJobError, GetJobResponse, GetMeData, GetMeResponse, GetProfileData, GetProfileError, GetProfileResponse, GetProjectData, GetProjectError, GetProjectResponse, GetRecipeData, GetRecipeError, GetRecipeResponse, GetStepLogData, GetStepLogError, GetStepLogResponse, HealthzData, HealthzResponse, InspectConnectionData, InspectConnectionError, InspectConnectionResponse, ListAuditData, ListAuditError, ListAuditResponse, ListConnectionsData, ListConnectionsError, ListConnectionsResponse, ListDatasetsData, ListDatasetsError, ListDatasetsResponse, ListJobsData, ListJobsError, ListJobsResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, ListRecipesData, ListRecipesError, ListRecipesResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchConnectionData, PatchConnectionError, PatchConnectionResponse, PatchDatasetData, PatchDatasetError, PatchDatasetResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, PatchRecipeData, PatchRecipeError, PatchRecipeResponse, PreviewRecipeData, PreviewRecipeError, PreviewRecipeResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RecomputeProfileData, RecomputeProfileError, RecomputeProfileResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SampleDatasetData, SampleDatasetError, SampleDatasetResponse, SearchData, SearchError, SearchResponse, TestConnectionData, TestConnectionError, TestConnectionResponse, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -433,6 +433,23 @@ export const projectAuditOptions = (options: Options<ProjectAuditData>) => query
     queryKey: projectAuditQueryKey(options)
 });
 
+/**
+ * Create Build
+ */
+export const createBuildMutation = (options?: Partial<Options<CreateBuildData>>): UseMutationOptions<CreateBuildResponse, CreateBuildError, Options<CreateBuildData>> => {
+    const mutationOptions: UseMutationOptions<CreateBuildResponse, CreateBuildError, Options<CreateBuildData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createBuild({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const listConnectionsQueryKey = (options: Options<ListConnectionsData>) => createQueryKey('listConnections', options);
 
 /**
@@ -747,6 +764,137 @@ export const getFlowOptions = (options: Options<GetFlowData>) => queryOptions<Ge
     },
     queryKey: getFlowQueryKey(options)
 });
+
+export const listJobsQueryKey = (options: Options<ListJobsData>) => createQueryKey('listJobs', options);
+
+/**
+ * List Jobs
+ */
+export const listJobsOptions = (options: Options<ListJobsData>) => queryOptions<ListJobsResponse, ListJobsError, ListJobsResponse, ReturnType<typeof listJobsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listJobs({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listJobsQueryKey(options)
+});
+
+export const listJobsInfiniteQueryKey = (options: Options<ListJobsData>): QueryKey<Options<ListJobsData>> => createQueryKey('listJobs', options, true);
+
+/**
+ * List Jobs
+ */
+export const listJobsInfiniteOptions = (options: Options<ListJobsData>) => {
+    const opts = infiniteQueryOptions<ListJobsResponse, ListJobsError, InfiniteData<ListJobsResponse>, QueryKey<Options<ListJobsData>>, string | null | Pick<QueryKey<Options<ListJobsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListJobsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listJobs({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listJobsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getJobQueryKey = (options: Options<GetJobData>) => createQueryKey('getJob', options);
+
+/**
+ * Get Job
+ */
+export const getJobOptions = (options: Options<GetJobData>) => queryOptions<GetJobResponse, GetJobError, GetJobResponse, ReturnType<typeof getJobQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getJob({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getJobQueryKey(options)
+});
+
+/**
+ * Cancel Job
+ */
+export const cancelJobMutation = (options?: Partial<Options<CancelJobData>>): UseMutationOptions<CancelJobResponse, CancelJobError, Options<CancelJobData>> => {
+    const mutationOptions: UseMutationOptions<CancelJobResponse, CancelJobError, Options<CancelJobData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await cancelJob({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getStepLogQueryKey = (options: Options<GetStepLogData>) => createQueryKey('getStepLog', options);
+
+/**
+ * Get Step Log
+ */
+export const getStepLogOptions = (options: Options<GetStepLogData>) => queryOptions<GetStepLogResponse, GetStepLogError, GetStepLogResponse, ReturnType<typeof getStepLogQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getStepLog({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getStepLogQueryKey(options)
+});
+
+export const getStepLogInfiniteQueryKey = (options: Options<GetStepLogData>): QueryKey<Options<GetStepLogData>> => createQueryKey('getStepLog', options, true);
+
+/**
+ * Get Step Log
+ */
+export const getStepLogInfiniteOptions = (options: Options<GetStepLogData>) => {
+    const opts = infiniteQueryOptions<GetStepLogResponse, GetStepLogError, InfiniteData<GetStepLogResponse>, QueryKey<Options<GetStepLogData>>, number | Pick<QueryKey<Options<GetStepLogData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetStepLogData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getStepLog({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getStepLogInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const listMembersQueryKey = (options: Options<ListMembersData>) => createQueryKey('listMembers', options);
 

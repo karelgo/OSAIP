@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ArchiveConnectionData, ArchiveConnectionErrors, ArchiveConnectionResponses, ArchiveDatasetData, ArchiveDatasetErrors, ArchiveDatasetResponses, ArchiveProjectData, ArchiveProjectErrors, ArchiveProjectResponses, ArchiveRecipeData, ArchiveRecipeErrors, ArchiveRecipeResponses, CallbackData, CallbackErrors, CallbackResponses, CreateConnectionData, CreateConnectionErrors, CreateConnectionResponses, CreateDatasetData, CreateDatasetErrors, CreateDatasetResponses, CreateProjectData, CreateProjectErrors, CreateProjectResponses, CreateRecipeData, CreateRecipeErrors, CreateRecipeResponses, CreateUploadData, CreateUploadErrors, CreateUploadResponses, EmitTestEventData, EmitTestEventResponses, EventsStreamData, EventsStreamErrors, EventsStreamResponses, GetConnectionData, GetConnectionErrors, GetConnectionResponses, GetDatasetData, GetDatasetErrors, GetDatasetResponses, GetFlowData, GetFlowErrors, GetFlowResponses, GetMeData, GetMeResponses, GetProfileData, GetProfileErrors, GetProfileResponses, GetProjectData, GetProjectErrors, GetProjectResponses, GetRecipeData, GetRecipeErrors, GetRecipeResponses, HealthzData, HealthzResponses, InspectConnectionData, InspectConnectionErrors, InspectConnectionResponses, ListAuditData, ListAuditErrors, ListAuditResponses, ListConnectionsData, ListConnectionsErrors, ListConnectionsResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListNotificationsData, ListNotificationsErrors, ListNotificationsResponses, ListProjectsData, ListProjectsErrors, ListProjectsResponses, ListRecipesData, ListRecipesErrors, ListRecipesResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, MarkAllReadData, MarkAllReadResponses, MarkReadData, MarkReadErrors, MarkReadResponses, PatchConnectionData, PatchConnectionErrors, PatchConnectionResponses, PatchDatasetData, PatchDatasetErrors, PatchDatasetResponses, PatchPrefsData, PatchPrefsErrors, PatchPrefsResponses, PatchProjectData, PatchProjectErrors, PatchProjectResponses, PatchRecipeData, PatchRecipeErrors, PatchRecipeResponses, PreviewRecipeData, PreviewRecipeErrors, PreviewRecipeResponses, ProjectAuditData, ProjectAuditErrors, ProjectAuditResponses, ReadyzData, ReadyzResponses, RecomputeProfileData, RecomputeProfileErrors, RecomputeProfileResponses, RemoveMemberData, RemoveMemberErrors, RemoveMemberResponses, ReplaceMembersData, ReplaceMembersErrors, ReplaceMembersResponses, SampleDatasetData, SampleDatasetErrors, SampleDatasetResponses, SearchData, SearchErrors, SearchResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses, VerifyAuditChainData, VerifyAuditChainResponses } from './types.gen';
+import type { ArchiveConnectionData, ArchiveConnectionErrors, ArchiveConnectionResponses, ArchiveDatasetData, ArchiveDatasetErrors, ArchiveDatasetResponses, ArchiveProjectData, ArchiveProjectErrors, ArchiveProjectResponses, ArchiveRecipeData, ArchiveRecipeErrors, ArchiveRecipeResponses, CallbackData, CallbackErrors, CallbackResponses, CancelJobData, CancelJobErrors, CancelJobResponses, CreateBuildData, CreateBuildErrors, CreateBuildResponses, CreateConnectionData, CreateConnectionErrors, CreateConnectionResponses, CreateDatasetData, CreateDatasetErrors, CreateDatasetResponses, CreateProjectData, CreateProjectErrors, CreateProjectResponses, CreateRecipeData, CreateRecipeErrors, CreateRecipeResponses, CreateUploadData, CreateUploadErrors, CreateUploadResponses, EmitTestEventData, EmitTestEventResponses, EventsStreamData, EventsStreamErrors, EventsStreamResponses, GetConnectionData, GetConnectionErrors, GetConnectionResponses, GetDatasetData, GetDatasetErrors, GetDatasetResponses, GetFlowData, GetFlowErrors, GetFlowResponses, GetJobData, GetJobErrors, GetJobResponses, GetMeData, GetMeResponses, GetProfileData, GetProfileErrors, GetProfileResponses, GetProjectData, GetProjectErrors, GetProjectResponses, GetRecipeData, GetRecipeErrors, GetRecipeResponses, GetStepLogData, GetStepLogErrors, GetStepLogResponses, HealthzData, HealthzResponses, InspectConnectionData, InspectConnectionErrors, InspectConnectionResponses, ListAuditData, ListAuditErrors, ListAuditResponses, ListConnectionsData, ListConnectionsErrors, ListConnectionsResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListJobsData, ListJobsErrors, ListJobsResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListNotificationsData, ListNotificationsErrors, ListNotificationsResponses, ListProjectsData, ListProjectsErrors, ListProjectsResponses, ListRecipesData, ListRecipesErrors, ListRecipesResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, MarkAllReadData, MarkAllReadResponses, MarkReadData, MarkReadErrors, MarkReadResponses, PatchConnectionData, PatchConnectionErrors, PatchConnectionResponses, PatchDatasetData, PatchDatasetErrors, PatchDatasetResponses, PatchPrefsData, PatchPrefsErrors, PatchPrefsResponses, PatchProjectData, PatchProjectErrors, PatchProjectResponses, PatchRecipeData, PatchRecipeErrors, PatchRecipeResponses, PreviewRecipeData, PreviewRecipeErrors, PreviewRecipeResponses, ProjectAuditData, ProjectAuditErrors, ProjectAuditResponses, ReadyzData, ReadyzResponses, RecomputeProfileData, RecomputeProfileErrors, RecomputeProfileResponses, RemoveMemberData, RemoveMemberErrors, RemoveMemberResponses, ReplaceMembersData, ReplaceMembersErrors, ReplaceMembersResponses, SampleDatasetData, SampleDatasetErrors, SampleDatasetResponses, SearchData, SearchErrors, SearchResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses, VerifyAuditChainData, VerifyAuditChainResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -137,6 +137,18 @@ export const patchProject = <ThrowOnError extends boolean = false>(options: Opti
 export const projectAudit = <ThrowOnError extends boolean = false>(options: Options<ProjectAuditData, ThrowOnError>): RequestResult<ProjectAuditResponses, ProjectAuditErrors, ThrowOnError> => (options.client ?? client).get<ProjectAuditResponses, ProjectAuditErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/audit', ...options });
 
 /**
+ * Create Build
+ */
+export const createBuild = <ThrowOnError extends boolean = false>(options: Options<CreateBuildData, ThrowOnError>): RequestResult<CreateBuildResponses, CreateBuildErrors, ThrowOnError> => (options.client ?? client).post<CreateBuildResponses, CreateBuildErrors, ThrowOnError>({
+    url: '/api/v1/projects/{key}/builds',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * List Connections
  */
 export const listConnections = <ThrowOnError extends boolean = false>(options: Options<ListConnectionsData, ThrowOnError>): RequestResult<ListConnectionsResponses, ListConnectionsErrors, ThrowOnError> => (options.client ?? client).get<ListConnectionsResponses, ListConnectionsErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/connections', ...options });
@@ -256,6 +268,26 @@ export const sampleDataset = <ThrowOnError extends boolean = false>(options: Opt
  * Get Flow
  */
 export const getFlow = <ThrowOnError extends boolean = false>(options: Options<GetFlowData, ThrowOnError>): RequestResult<GetFlowResponses, GetFlowErrors, ThrowOnError> => (options.client ?? client).get<GetFlowResponses, GetFlowErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/flow', ...options });
+
+/**
+ * List Jobs
+ */
+export const listJobs = <ThrowOnError extends boolean = false>(options: Options<ListJobsData, ThrowOnError>): RequestResult<ListJobsResponses, ListJobsErrors, ThrowOnError> => (options.client ?? client).get<ListJobsResponses, ListJobsErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/jobs', ...options });
+
+/**
+ * Get Job
+ */
+export const getJob = <ThrowOnError extends boolean = false>(options: Options<GetJobData, ThrowOnError>): RequestResult<GetJobResponses, GetJobErrors, ThrowOnError> => (options.client ?? client).get<GetJobResponses, GetJobErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/jobs/{job_id}', ...options });
+
+/**
+ * Cancel Job
+ */
+export const cancelJob = <ThrowOnError extends boolean = false>(options: Options<CancelJobData, ThrowOnError>): RequestResult<CancelJobResponses, CancelJobErrors, ThrowOnError> => (options.client ?? client).post<CancelJobResponses, CancelJobErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/jobs/{job_id}/cancel', ...options });
+
+/**
+ * Get Step Log
+ */
+export const getStepLog = <ThrowOnError extends boolean = false>(options: Options<GetStepLogData, ThrowOnError>): RequestResult<GetStepLogResponses, GetStepLogErrors, ThrowOnError> => (options.client ?? client).get<GetStepLogResponses, GetStepLogErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/jobs/{job_id}/steps/{ordinal}/log', ...options });
 
 /**
  * List Members

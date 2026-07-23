@@ -1,19 +1,25 @@
 """Worker entrypoint.
 
 Housekeeping: heartbeat, event retention (ADR-0003), idempotency-key pruning, and
-raw-upload pruning (Phase 1 plan §3: uploads are transient, >24h are deleted). The
-Postgres-backed job queue (FOR UPDATE SKIP LOCKED) is Phase 2 (spec §3.2).
+raw-upload pruning (Phase 1 plan §3: uploads are transient, >24h are deleted). Phase 2
+(ADR-0007 §1) adds the Postgres-backed job queue: a claim/run loop (FOR UPDATE SKIP
+LOCKED), a requeue sweeper, and an orphan-version sweeper, all via `JobExecutor`.
 """
 
 import asyncio
 import datetime
 import logging
 import os
+import socket
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from osaip_api.config import get_settings
+from osaip_api.db import make_sessionmaker
+from osaip_api.secrets import Vault
 from osaip_engine.storage import Storage, StorageConfig
+from osaip_worker.executor import JobExecutor, job_loop, sweep_loop
 
 log = logging.getLogger("osaip.worker")
 
@@ -63,7 +69,7 @@ async def heartbeat(engine: AsyncEngine) -> None:
         await asyncio.sleep(HEARTBEAT_SECONDS)
 
 
-async def prune(engine: AsyncEngine) -> None:
+async def prune(engine: AsyncEngine, executor: "JobExecutor") -> None:
     while True:
         try:
             async with engine.begin() as conn:
@@ -88,16 +94,36 @@ async def prune(engine: AsyncEngine) -> None:
                 log.info("upload prune ok: %s objects removed", removed)
         except Exception:
             log.exception("upload prune failed")
+        try:
+            orphans = await executor.prune_orphans()
+            if orphans:
+                log.info("orphan version prune ok: %s objects removed", orphans)
+        except Exception:
+            log.exception("orphan prune failed")
         await asyncio.sleep(PRUNE_INTERVAL_SECONDS)
+
+
+def _worker_id() -> str:
+    return os.environ.get("OSAIP_WORKER_ID") or f"{socket.gethostname()}:{os.getpid()}"
 
 
 async def run() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    database_url = os.environ.get(
-        "OSAIP_DATABASE_URL", "postgresql+asyncpg://osaip:osaip@localhost:5433/osaip"
+    settings = get_settings()
+    engine = create_async_engine(settings.database_url)
+    executor = JobExecutor(
+        make_sessionmaker(engine),
+        _storage_from_env(),
+        Vault(settings.secret_key),
+        settings,
+        _worker_id(),
     )
-    engine = create_async_engine(database_url)
-    await asyncio.gather(heartbeat(engine), prune(engine))
+    await asyncio.gather(
+        heartbeat(engine),
+        prune(engine, executor),
+        job_loop(executor),
+        sweep_loop(executor),
+    )
 
 
 def main() -> None:

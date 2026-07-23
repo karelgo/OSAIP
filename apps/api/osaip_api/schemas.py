@@ -264,3 +264,39 @@ class FlowOut(BaseModel):
     recipes: list[FlowRecipeOut]
     edges: list[FlowEdgeOut]
     capabilities: FlowCapabilitiesOut
+
+
+# ── Phase 2: builds & jobs ───────────────────────────────────────────────────────
+
+
+class StepOut(BaseModel):
+    ordinal: int
+    recipe_name: str | None
+    target_dataset_name: str | None
+    status: str
+    error: str | None
+    log_size: int
+    started_at: str | None
+    finished_at: str | None
+
+
+class JobOut(BaseModel):
+    id: str
+    kind: str
+    status: str
+    trigger: str
+    attempts: int
+    created_at: str
+    started_at: str | None
+    finished_at: str | None
+    steps: list[StepOut]
+
+
+class JobListOut(BaseModel):
+    items: list[JobOut]
+    next_cursor: str | None
+
+
+class LogTailOut(BaseModel):
+    content: str
+    next_offset: int

@@ -16,6 +16,7 @@ from osaip_api.problem import register_problem_handlers
 from osaip_api.routers import (
     audit_admin,
     auth,
+    builds,
     connections,
     datasets,
     dev,
@@ -103,6 +104,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(datasets.router, prefix="/api/v1")
     app.include_router(recipes.router, prefix="/api/v1")
     app.include_router(flow.router, prefix="/api/v1")
+    app.include_router(builds.router, prefix="/api/v1")
     app.include_router(audit_admin.router, prefix="/api/v1")
     app.include_router(search.router, prefix="/api/v1")
     app.include_router(events.router, prefix="/api/v1")

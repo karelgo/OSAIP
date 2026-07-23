@@ -20,7 +20,7 @@ from osaip_api.db import get_session
 from osaip_api.etag import etag_json_response
 from osaip_api.models import Dataset, DatasetVersion, Job, JobStep, Recipe
 from osaip_api.permissions import load_project_context
-from osaip_api.recipes_service import load_graph
+from osaip_api.recipes_service import compute_staleness, load_graph
 from osaip_api.schemas import FlowOut
 
 router = APIRouter(prefix="/projects/{key}/flow", tags=["flow"])
@@ -41,16 +41,14 @@ def _base_status(
     if not produced:
         # A registered-but-unbuilt source shouldn't happen for P1 datasets, but be safe.
         return "source_empty" if dataset.current_version == 0 else "source"
-    if dataset.current_version == 0 or version is None:
-        return "never_built"
-    stale = producer_hash != version.recipe_config_hash
-    if not stale:
-        consumed = version.input_versions or {}
-        for input_dataset in input_datasets:
-            if input_dataset.current_version > consumed.get(str(input_dataset.id), 0):
-                stale = True
-                break
-    return "stale" if stale else "fresh"
+    # Shared staleness contract (recipes_service.compute_staleness) — the same predicate
+    # build resolution uses, so the Flow and the build planner never disagree.
+    return compute_staleness(
+        current_version=dataset.current_version,
+        version=version,
+        producer_hash=producer_hash,
+        input_datasets=input_datasets,
+    )
 
 
 @router.get("", response_model=FlowOut)
