@@ -29,6 +29,7 @@ async def test_create_project_full_shape(login_as: LoginAs, db_session: AsyncSes
         "can_edit": True,
         "can_manage_members": True,
         "can_archive": True,
+        "can_manage_connections": True,
     }
 
     audit = (

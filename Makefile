@@ -25,7 +25,7 @@ lint: lint-py lint-web
 lint-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/shared apps/api/osaip_api apps/worker/osaip_worker
+	uv run mypy --strict packages/shared packages/engine apps/api/osaip_api apps/worker/osaip_worker
 
 lint-web:
 	pnpm run lint

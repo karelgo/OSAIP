@@ -5,6 +5,7 @@ description = "OSAIP FastAPI application (BFF, projects, audit, search, SSE)"
 requires-python = ">=3.12"
 dependencies = [
     "osaip-shared",
+    "osaip-engine",
     "fastapi>=0.116",
     "uvicorn[standard]>=0.35",
     "sqlalchemy[asyncio]>=2.0.41",
@@ -17,10 +18,12 @@ dependencies = [
     "sse-starlette>=2.3",
     "orjson>=3.10",
     "httpx>=0.28",
+    "cryptography>=44.0",
 ]
 
 [tool.uv.sources]
 osaip-shared = { workspace = true }
+osaip-engine = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

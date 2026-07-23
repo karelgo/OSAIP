@@ -1,6 +1,7 @@
 """Projects CRUD, membership, and per-project audit (spec §7 Phase 0)."""
 
 import base64
+import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -323,7 +324,11 @@ async def replace_members(
         else:
             desired.pop(str(row.user_id))
     for user_id, role in desired.items():
-        session.add(ProjectMember(project_id=ctx.project.id, user_id=user_id, role=role))
+        # uuid.UUID, not the dict's string key: multi-row inserts (insertmanyvalues)
+        # match returned sentinel values by exact type.
+        session.add(
+            ProjectMember(project_id=ctx.project.id, user_id=uuid.UUID(user_id), role=role)
+        )
 
     await write_audit(
         session,

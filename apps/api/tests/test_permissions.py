@@ -42,4 +42,9 @@ def test_capabilities_by_role(role: str, can_edit: bool, can_manage: bool) -> No
 
 def test_archived_project_has_no_write_capabilities() -> None:
     caps = ProjectContext(project=_project("archived"), role="admin").capabilities
-    assert caps == {"can_edit": False, "can_manage_members": False, "can_archive": False}
+    assert caps == {
+        "can_edit": False,
+        "can_manage_members": False,
+        "can_archive": False,
+        "can_manage_connections": False,
+    }

@@ -16,6 +16,7 @@ from osaip_api.problem import register_problem_handlers
 from osaip_api.routers import (
     audit_admin,
     auth,
+    connections,
     dev,
     events,
     health,
@@ -25,6 +26,7 @@ from osaip_api.routers import (
     search,
     well_known,
 )
+from osaip_api.secrets import Vault
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -58,6 +60,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         generate_unique_id_function=lambda route: route.name,
     )
     app.state.settings = settings
+    # Fails fast on a malformed OSAIP_SECRET_KEY (ADR-0006 §1) — boot, not first write.
+    app.state.vault = Vault(settings.secret_key)
 
     register_problem_handlers(app)
     register_middleware(app)
@@ -76,6 +80,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(me.router, prefix="/api/v1")
     app.include_router(projects.router, prefix="/api/v1")
+    app.include_router(connections.router, prefix="/api/v1")
     app.include_router(audit_admin.router, prefix="/api/v1")
     app.include_router(search.router, prefix="/api/v1")
     app.include_router(events.router, prefix="/api/v1")

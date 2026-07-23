@@ -13,6 +13,29 @@ class CapabilitiesOut(BaseModel):
     can_edit: bool
     can_manage_members: bool
     can_archive: bool
+    can_manage_connections: bool
+
+
+class ConnectionOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    config: dict[str, Any]
+    has_secret: bool
+    legal_basis: str
+    purpose_codes: list[str]
+    status: str
+    created_at: str
+    updated_at: str
+
+
+class ConnectionListOut(BaseModel):
+    items: list[ConnectionOut]
+
+
+class ConnectionTestOut(BaseModel):
+    ok: bool
+    latency_ms: float
 
 
 class ProjectOut(BaseModel):

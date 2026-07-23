@@ -16,7 +16,7 @@ jobs:
       - run: uv sync --frozen --all-packages
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run mypy --strict packages/shared apps/api/osaip_api apps/worker/osaip_worker
+      - run: uv run mypy --strict packages/shared packages/engine apps/api/osaip_api apps/worker/osaip_worker
       - run: uv run pytest
 
   web:

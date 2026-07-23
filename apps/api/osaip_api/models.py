@@ -18,13 +18,14 @@ from sqlalchemy import (
     Identity,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from osaip_api.db import Base
@@ -251,4 +252,129 @@ class IdempotencyKey(Base):
     request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     response_status: Mapped[int] = mapped_column(Integer, nullable=False)
     response_body: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime.datetime] = _created_at()
+
+
+class Secret(Base):
+    """MultiFernet ciphertext for connection credentials (ADR-0006 §1). Write-only
+    through the API; `key_id` records which key encrypted this value."""
+
+    __tablename__ = "secrets"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    key_id: Mapped[str] = mapped_column(String(12), nullable=False)
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()
+
+
+class Connection(Base):
+    """Data connection (spec §4). `config` is non-secret; credentials live in
+    `secrets`. CP-2: legal basis + purpose codes are mandatory."""
+
+    __tablename__ = "connections"
+    __table_args__ = (
+        CheckConstraint("kind IN ('postgres', 's3', 'duckdb_file')", name="kind"),
+        CheckConstraint("status IN ('active', 'archived')", name="status"),
+        UniqueConstraint("project_id", "name", name="uq_connections_project_name"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    secret_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("secrets.id", ondelete="SET NULL"), nullable=True
+    )
+    legal_basis: Mapped[str] = mapped_column(String(500), nullable=False)
+    purpose_codes: Mapped[list[str]] = mapped_column(ARRAY(String(100)), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()
+
+
+class Dataset(Base):
+    """Dataset = schema + location + params (spec §1). CP-1 labels are tri-field
+    (classification / bbn_level / confidentiality — orthogonal axes); CP-2 purpose
+    metadata mirrors connections and is required at creation."""
+
+    __tablename__ = "datasets"
+    __table_args__ = (
+        CheckConstraint("kind IN ('file', 'table', 's3', 'duckdb_file')", name="kind"),
+        CheckConstraint("status IN ('active', 'archived')", name="status"),
+        CheckConstraint(
+            "classification IN ('none', 'persoonsgegevens', 'bijzonder', 'bsn')",
+            name="classification",
+        ),
+        CheckConstraint(
+            "bbn_level IS NULL OR bbn_level IN ('bbn1', 'bbn2', 'bbn3')", name="bbn_level"
+        ),
+        CheckConstraint(
+            "confidentiality IS NULL OR confidentiality IN ('intern', 'vertrouwelijk', 'geheim')",
+            name="confidentiality",
+        ),
+        UniqueConstraint("project_id", "name", name="uq_datasets_project_name"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    connection_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("connections.id", ondelete="RESTRICT"), nullable=True
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    classification: Mapped[str] = mapped_column(String(20), nullable=False, default="none")
+    bbn_level: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    confidentiality: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    legal_basis: Mapped[str] = mapped_column(String(500), nullable=False)
+    purpose_codes: Mapped[list[str]] = mapped_column(ARRAY(String(100)), nullable=False)
+    params: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    current_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()
+
+
+class DatasetVersion(Base):
+    __tablename__ = "dataset_versions"
+    __table_args__ = (
+        CheckConstraint("format IN ('parquet', 'external')", name="format"),
+        CheckConstraint(
+            "row_count_kind IS NULL OR row_count_kind IN ('exact', 'estimate')",
+            name="row_count_kind",
+        ),
+        UniqueConstraint("dataset_id", "version", name="uq_dataset_versions_dataset_version"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    location: Mapped[str] = mapped_column(String(1000), nullable=False)
+    format: Mapped[str] = mapped_column(String(16), nullable=False)
+    schema_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    row_count: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    row_count_kind: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    profile_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime.datetime] = _created_at()

@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     dev: bool = False
     session_secret: str = "dev-session-secret-not-for-prod"
     session_ttl_seconds: int = 8 * 60 * 60
+    # MultiFernet key list (ADR-0006); dev-only default, replace in prod.
+    secret_key: str = "b3NhaXAtZGV2LW9ubHktc2VjcmV0LWtleS0zMmJ5dGU="
 
     # OIDC (ADR-0001). issuer/authorize are browser-facing; token/JWKS go to the
     # internal base so the api container can reach Keycloak in compose.

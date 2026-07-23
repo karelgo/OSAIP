@@ -36,6 +36,8 @@ class ProjectContext:
             "can_edit": active and has_role(self.role, "editor"),
             "can_manage_members": active and has_role(self.role, "admin"),
             "can_archive": active and has_role(self.role, "admin"),
+            # Connections carry credentials — admin only (Phase 1 plan, RBAC matrix).
+            "can_manage_connections": active and has_role(self.role, "admin"),
         }
 
 

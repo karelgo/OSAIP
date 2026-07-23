@@ -42,7 +42,7 @@ select = ["E", "F", "I", "UP", "B", "S", "ASYNC"]
 ignore = ["S101"]  # asserts are fine in tests; app code avoids them by convention
 
 [tool.ruff.lint.isort]
-known-first-party = ["osaip_api", "osaip_worker", "osaip_shared", "osaip"]
+known-first-party = ["osaip_api", "osaip_worker", "osaip_shared", "osaip_engine", "osaip"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S105", "S106"]  # fixed dev-realm credentials in tests (ADR-0005)
