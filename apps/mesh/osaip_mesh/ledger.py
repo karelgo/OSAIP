@@ -15,7 +15,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from osaip_api.models import LlmCall, LlmCallMessage, Span, Trace
@@ -135,16 +136,19 @@ async def ensure_trace(
     project_id: uuid.UUID | None = None,
 ) -> uuid.UUID:
     """Return a trace id, creating the root when the caller did not supply one. A
-    caller that already owns a trace (a build step) passes it, so its spans nest."""
-    if trace_id is not None:
-        existing = (
-            await session.execute(select(Trace.trace_id).where(Trace.trace_id == trace_id))
-        ).scalar_one_or_none()
-        if existing is not None:
-            return trace_id
+    caller that already owns a trace (a build step) passes it, so its spans nest.
+
+    ON CONFLICT DO NOTHING rather than check-then-insert: a per-row LLM build fires many
+    concurrent calls that all share one caller-supplied trace_id, and a read followed by
+    an insert lets two of them both see "absent" and one die on the primary key — inside
+    the settle transaction, which would lose an already-billed call.
+    """
     new_trace_id = trace_id or new_id()
-    session.add(Trace(trace_id=new_trace_id, root_kind=root_kind, project_id=project_id))
-    await session.flush()
+    await session.execute(
+        pg_insert(Trace)
+        .values(trace_id=new_trace_id, root_kind=root_kind, project_id=project_id)
+        .on_conflict_do_nothing(index_elements=[Trace.trace_id])
+    )
     return new_trace_id
 
 

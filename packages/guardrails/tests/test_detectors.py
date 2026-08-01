@@ -140,3 +140,35 @@ def test_the_event_counts_but_never_quotes_the_value() -> None:
 def test_multiple_matches_of_one_kind_all_go() -> None:
     result = redact("111222333 / 123456782 / 999999990")
     assert result.text == "<BSN> / <BSN> / <BSN>"
+
+
+# ── separator formats (adversarial review finding, 2026-08-01) ───────────────────
+
+
+@pytest.mark.parametrize("rendering", ["123456782", "1234.56.782", "123 456 782", "123-456-782"])
+def test_a_bsn_is_found_however_it_is_grouped(rendering: str) -> None:
+    """Dutch case files write a BSN grouped as often as not. Matching only contiguous
+    digits meant `1234.56.782` sailed through unredacted — the exact data-protection
+    incident this module's docstring names."""
+    assert len(find_bsn(f"sofinummer {rendering} hier")) == 1
+
+
+def test_a_grouped_bsn_is_actually_redacted() -> None:
+    result = redact("Cliënt met sofinummer 1234.56.782 is afgekeurd.")
+    assert result.text == "Cliënt met sofinummer <BSN> is afgekeurd."
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "01-02-2026",  # a date, not a 4-2-3 or 3-3-3 grouping
+        "2026-08-01",
+        "12.34.56.78",  # 2-2-2-2
+        "06-12345678",  # a phone number: 10 digits
+        "020-1234567",
+    ],
+)
+def test_separator_support_does_not_swallow_other_formats(value: str) -> None:
+    """Accepting `digits with any punctuation` would flag dates and phone numbers, and
+    one in eleven would pass the 11-proef and be redacted as a BSN."""
+    assert find_bsn(value) == []

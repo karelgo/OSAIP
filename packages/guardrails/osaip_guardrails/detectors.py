@@ -14,7 +14,18 @@ from osaip_guardrails.types import Detection
 
 # Not \b: a BSN adjoining a letter (id42:123456782) is still a BSN, but one inside a
 # longer digit run (0123456782345) is not a BSN, it is a different number.
-_BSN_RE = re.compile(r"(?<!\d)(\d{8,9})(?!\d)")
+#
+# Separators matter: Dutch case files routinely write a BSN grouped — `1234.56.789`
+# (4-2-3) or `123 456 789` (3-3-3). Only those two groupings are accepted, not "digits
+# with any punctuation": a loose pattern would swallow dates like `01-02-2026` and, one
+# time in eleven, one would pass the 11-proef and get redacted as a BSN.
+_BSN_RE = re.compile(
+    r"(?<![\d.\-])("
+    r"\d{8,9}"  # contiguous
+    r"|\d{4}[.\- ]\d{2}[.\- ]\d{3}"  # 1234.56.789
+    r"|\d{3}[.\- ]\d{3}[.\- ]\d{3}"  # 123 456 789
+    r")(?![\d.\-]\d)"
+)
 _IBAN_RE = re.compile(
     r"(?<![A-Z0-9])([A-Z]{2}\d{2}[ ]?(?:[A-Z0-9]{4}[ ]?){2,7}[A-Z0-9]{1,4})(?![A-Z0-9])"
 )
@@ -34,9 +45,10 @@ def is_valid_bsn(digits: str) -> bool:
     The final digit is subtracted, not added — that is the whole point of the check, and
     getting it wrong turns the validator into an accept-almost-anything filter.
     """
-    if not digits.isdigit() or not 8 <= len(digits) <= 9:
+    compact = digits.replace(".", "").replace("-", "").replace(" ", "")
+    if not compact.isdigit() or not 8 <= len(compact) <= 9:
         return False
-    padded = digits.zfill(9)  # legacy 8-digit sofinummers are a BSN with a leading zero
+    padded = compact.zfill(9)  # legacy 8-digit sofinummers are a BSN with a leading zero
     if padded == "0" * 9:
         return False
     total = sum(int(d) * (9 - i) for i, d in enumerate(padded[:8])) - int(padded[8])

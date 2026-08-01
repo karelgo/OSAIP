@@ -187,38 +187,47 @@ async def reserve(
         .scalars()
         .all()
     )
-    by_scope = {(q.scope_type, q.scope_id): q for q in quotas}
+    # Keyed by PERIOD too: `uq_quotas_scope_period` lets one scope carry both a daily
+    # and a monthly budget, and a dict keyed only on the scope silently dropped one of
+    # them — so the daily cap was never enforced wherever a monthly cap also existed.
+    by_scope: dict[tuple[str, uuid.UUID], list[Quota]] = {}
+    for quota in quotas:
+        by_scope.setdefault((quota.scope_type, quota.scope_id), []).append(quota)
 
-    pending: list[tuple[Scope, QuotaStatus]] = []
+    pending: list[Scope] = []
     for scope in ordered:
-        quota = by_scope.get((scope.scope_type, scope.scope_id))
-        if quota is None:
+        scope_quotas = by_scope.get((scope.scope_type, scope.scope_id), [])
+        if not scope_quotas:
             continue
         # Serialize every writer against this scope until we commit, so the sum we read
         # cannot go stale between the read and our insert.
         await session.execute(_LOCK_SQL, {"key": scope.lock_key})
-        since = window_start(quota.period, now)
-        spent, calls = await _window_usage(session, scope, since, now)
-        status = QuotaStatus(
-            scope_type=scope.scope_type,
-            scope_id=scope.scope_id,
-            period=quota.period,
-            action=quota.action,
-            window_start=since,
-            spent_micros=spent + estimated_micros,
-            calls=calls + 1,
-            limit_cost_micros=quota.limit_cost_micros,
-            limit_calls=quota.limit_calls,
-            reserved_micros=estimated_micros,
-        )
-        if status.exceeded_dimension is not None:
-            if quota.action == "block":
-                await session.rollback()  # release the locks; leave no hold behind
-                raise QuotaExceeded(status)
-            reservation.warnings.append(status)
-        pending.append((scope, status))
+        # EVERY budget on this scope is evaluated — the tightest one wins.
+        for quota in scope_quotas:
+            since = window_start(quota.period, now)
+            spent, calls = await _window_usage(session, scope, since, now)
+            status = QuotaStatus(
+                scope_type=scope.scope_type,
+                scope_id=scope.scope_id,
+                period=quota.period,
+                action=quota.action,
+                window_start=since,
+                spent_micros=spent + estimated_micros,
+                calls=calls + 1,
+                limit_cost_micros=quota.limit_cost_micros,
+                limit_calls=quota.limit_calls,
+                reserved_micros=estimated_micros,
+            )
+            if status.exceeded_dimension is not None:
+                if quota.action == "block":
+                    await session.rollback()  # release the locks; leave no hold behind
+                    raise QuotaExceeded(status)
+                reservation.warnings.append(status)
+        # One hold per SCOPE, not per budget: the reservation records what this call
+        # holds against the scope, and every period's window sum reads the same rows.
+        pending.append(scope)
 
-    for scope, _ in pending:
+    for scope in pending:
         row_id = new_id()
         session.add(
             QuotaReservation(

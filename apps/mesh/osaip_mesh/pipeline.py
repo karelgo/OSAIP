@@ -23,11 +23,14 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from osaip_api.models import LlmCall
 from osaip_api.notifications import notify
 from osaip_guardrails.policy import BASELINE, PolicyConfig
+from osaip_guardrails.types import GuardrailEvent
 from osaip_mesh.cache import cache_lookup, cache_store, compute_request_hash, is_cacheable
 from osaip_mesh.cost import compute_cost, estimate_tokens
 from osaip_mesh.guardrails import (
+    OutputRejected,
     enforce_residency,
     events_payload,
     persist_events,
@@ -200,82 +203,65 @@ async def run_pipeline(
         )
 
     # ── guardrails `post`: validate the shape, redact the copy we store ─────────
-    audited_answer, post_events = run_post_stage(result.content, connection.policy)
-    guardrail_events.extend(post_events)
-    audited_redacted = [*redacted_messages, Message(role="assistant", content=audited_answer)]
-    audited_raw = [*raw_messages, Message(role="assistant", content=result.content)]
-
-    latency_ms = int((time.perf_counter() - started) * 1000)
-    finished_at = _utcnow()
-
-    # ── settle ──────────────────────────────────────────────────────────────────
-    trace_id = await ensure_trace(
-        session,
-        context.trace_id,
-        root_kind="recipe" if context.job_id else "manual",
-        project_id=context.project_id,
-    )
-    span = await record_span(
-        session,
-        trace_id=trace_id,
-        name=f"{connection.provider}:{request.model}",
-        started_at=started_at,
-        finished_at=finished_at,
-        tokens=result.tokens_in + result.tokens_out,
-        cost_micros=cost_micros,
-        # Span payloads follow the same rule as the audit: redacted text only.
-        input_json={"model": request.model, "messages": len(redacted_messages)},
-        output_json={"cache_hit": cached is not None},
-    )
-    call = await record_call(
-        session,
-        LedgerEntry(
-            provider=connection.provider,
-            model=request.model,
-            model_version=result.model_version,
-            purpose=context.purpose,
-            tokens_in=result.tokens_in,
-            tokens_out=result.tokens_out,
-            tokens_estimated=result.tokens_estimated,
+    # A rejection here happens AFTER the provider ran and billed, so it must still
+    # settle exactly like a success: the call happened, and hiding it would make the
+    # ledger under-report real spend and strand the quota hold. Only the ANSWER is
+    # withheld from the caller.
+    try:
+        audited_answer, post_events = run_post_stage(result.content, connection.policy)
+    except OutputRejected as exc:
+        guardrail_events.extend(exc.events)
+        await _settle_call(
+            session,
+            connection=connection,
+            context=context,
+            request=request,
+            result=result,
+            reservation=reservation,
+            guardrail_events=guardrail_events,
+            redacted_messages=redacted_messages,
+            raw_messages=raw_messages,
+            # The rejected answer is never stored: the policy just said it must not be
+            # used, and the events record why.
+            audited_answer=None,
+            request_hash=request_hash,
+            started_at=started_at,
+            latency_ms=int((time.perf_counter() - started) * 1000),
             cost_micros=cost_micros,
             currency=currency,
             pricing_unknown=pricing_unknown,
-            latency_ms=latency_ms,
             cache_hit=cached is not None,
-            project_id=context.project_id,
-            user_id=context.user_id,
-            connection_id=connection.id,
-            trace_id=trace_id,
-            span_id=span.span_id,
-            job_id=context.job_id,
-            job_step_id=context.job_step_id,
-            row_key=context.row_key,
-            request_hash=request_hash,
-            guardrail_events=events_payload(guardrail_events),
-        ),
-        messages_redacted=audited_redacted,
-        messages_raw=audited_raw,
-        audit_mode=connection.audit_mode,
-    )
-    persist_events(session, guardrail_events, call_id=call.id, project_id=context.project_id)
-    if cacheable and cached is None:
-        await cache_store(
-            session,
-            request_hash=request_hash,
-            connection_id=connection.id,
-            project_id=context.project_id,
-            content=result.content,
-            tokens_in=result.tokens_in,
-            tokens_out=result.tokens_out,
-            model_version=result.model_version,
-            tokens_estimated=result.tokens_estimated,
-            ttl_s=connection.cache_ttl_s,
+            # Deliberately NOT cached: a response the policy refused must not be served
+            # to the next caller.
+            cache_ttl_s=0,
+            status="blocked",
         )
-    # The hold shrinks to the truth — 0 for a cache hit — in the same transaction as
-    # the ledger row, so spend and reservation can never disagree.
-    await settle(session, reservation, actual_micros=cost_micros, call_id=call.id)
-    await _notify_crossings(session, reservation, user_id=context.user_id)
-    await session.commit()
+        raise
+    guardrail_events.extend(post_events)
+
+    # ── settle (same path a post-rejection takes, so the two cannot drift) ───────
+    call, trace_id = await _settle_call(
+        session,
+        connection=connection,
+        context=context,
+        request=request,
+        result=result,
+        reservation=reservation,
+        guardrail_events=guardrail_events,
+        redacted_messages=redacted_messages,
+        raw_messages=raw_messages,
+        audited_answer=audited_answer,
+        request_hash=request_hash,
+        started_at=started_at,
+        latency_ms=int((time.perf_counter() - started) * 1000),
+        cost_micros=cost_micros,
+        currency=currency,
+        pricing_unknown=pricing_unknown,
+        cache_hit=cached is not None,
+        cache_ttl_s=connection.cache_ttl_s if cacheable else 0,
+        status="ok",
+    )
+    latency_ms = call.latency_ms
 
     return MeshOutcome(
         content=result.content,
@@ -293,6 +279,114 @@ async def run_pipeline(
         guardrail_events=events_payload(guardrail_events),
         quota_warnings=[_warning_payload(w) for w in reservation.warnings],
     )
+
+
+async def _settle_call(
+    session: AsyncSession,
+    *,
+    connection: ConnectionInfo,
+    context: CallContext,
+    request: CompletionRequest,
+    result: CompletionResult,
+    reservation: Reservation,
+    guardrail_events: list[GuardrailEvent],
+    redacted_messages: list[Message],
+    raw_messages: list[Message],
+    audited_answer: str | None,
+    request_hash: str,
+    started_at: datetime.datetime,
+    latency_ms: int,
+    cost_micros: int,
+    currency: str,
+    pricing_unknown: bool,
+    cache_hit: bool,
+    cache_ttl_s: int,
+    status: str,
+) -> tuple[LlmCall, uuid.UUID]:
+    """Write the trace, span, ledger row, audited messages, guardrail events, cache
+    entry and quota settlement — the whole settle step, in ONE place.
+
+    It lives in one function because it previously did not: the post-guardrail
+    rejection path skipped all of it, so a call that had already been billed left no
+    ledger row and an unsettled hold. Any future exit that happens after the provider
+    has run must come through here.
+    """
+    trace_id = await ensure_trace(
+        session,
+        context.trace_id,
+        root_kind="recipe" if context.job_id else "manual",
+        project_id=context.project_id,
+    )
+    span = await record_span(
+        session,
+        trace_id=trace_id,
+        name=f"{connection.provider}:{request.model}",
+        started_at=started_at,
+        finished_at=_utcnow(),
+        tokens=result.tokens_in + result.tokens_out,
+        cost_micros=cost_micros,
+        status="ok" if status == "ok" else "error",
+        # Span payloads follow the same rule as the audit: redacted text only.
+        input_json={"model": request.model, "messages": len(redacted_messages)},
+        output_json={"cache_hit": cache_hit, "status": status},
+    )
+    audited_redacted = list(redacted_messages)
+    audited_raw = list(raw_messages)
+    if audited_answer is not None:
+        audited_redacted.append(Message(role="assistant", content=audited_answer))
+        audited_raw.append(Message(role="assistant", content=result.content))
+
+    call = await record_call(
+        session,
+        LedgerEntry(
+            provider=connection.provider,
+            model=request.model,
+            model_version=result.model_version,
+            purpose=context.purpose,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
+            tokens_estimated=result.tokens_estimated,
+            cost_micros=cost_micros,
+            currency=currency,
+            pricing_unknown=pricing_unknown,
+            latency_ms=latency_ms,
+            cache_hit=cache_hit,
+            status=status,
+            project_id=context.project_id,
+            user_id=context.user_id,
+            connection_id=connection.id,
+            trace_id=trace_id,
+            span_id=span.span_id,
+            job_id=context.job_id,
+            job_step_id=context.job_step_id,
+            row_key=context.row_key,
+            request_hash=request_hash,
+            guardrail_events=events_payload(guardrail_events),
+        ),
+        messages_redacted=audited_redacted,
+        messages_raw=audited_raw,
+        audit_mode=connection.audit_mode,
+    )
+    persist_events(session, guardrail_events, call_id=call.id, project_id=context.project_id)
+    if cache_ttl_s > 0 and not cache_hit:
+        await cache_store(
+            session,
+            request_hash=request_hash,
+            connection_id=connection.id,
+            project_id=context.project_id,
+            content=result.content,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
+            model_version=result.model_version,
+            tokens_estimated=result.tokens_estimated,
+            ttl_s=cache_ttl_s,
+        )
+    # The hold shrinks to the truth — 0 for a cache hit — in the same transaction as
+    # the ledger row, so spend and reservation can never disagree.
+    await settle(session, reservation, actual_micros=cost_micros, call_id=call.id)
+    await _notify_crossings(session, reservation, user_id=context.user_id)
+    await session.commit()
+    return call, trace_id
 
 
 async def _invoke(provider: Provider, request: CompletionRequest) -> CompletionResult:

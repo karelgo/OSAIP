@@ -668,7 +668,13 @@ class LlmCall(Base):
 
     __tablename__ = "llm_calls"
     __table_args__ = (
+        # Quota checks sum the ledger per scope inside an advisory lock, so every
+        # scope column needs a (scope, ts) index — an unindexed scan there holds the
+        # lock while it runs and queues every concurrent call on the same scope.
         Index("ix_llm_calls_project_ts", "project_id", "ts"),
+        Index("ix_llm_calls_user_ts", "user_id", "ts"),
+        Index("ix_llm_calls_connection_ts", "connection_id", "ts"),
+        Index("ix_llm_calls_agent_ts", "agent_id", "ts"),
         Index("ix_llm_calls_job", "job_id"),
         Index("ix_llm_calls_trace", "trace_id"),
     )
@@ -773,7 +779,18 @@ class QuotaReservation(Base):
     window sums, so parallel calls cannot collectively overshoot a budget."""
 
     __tablename__ = "quota_reservations"
-    __table_args__ = (Index("ix_quota_reservations_scope_ts", "scope_type", "scope_id", "ts"),)
+    __table_args__ = (
+        Index("ix_quota_reservations_scope_ts", "scope_type", "scope_id", "ts"),
+        # The window sum only ever reads OPEN holds; a partial index keeps it from
+        # re-reading the settled history that accumulates behind it.
+        Index(
+            "ix_quota_reservations_open",
+            "scope_type",
+            "scope_id",
+            "ts",
+            postgresql_where=text("settled_micros IS NULL"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
     scope_type: Mapped[str] = mapped_column(String(20), nullable=False)
