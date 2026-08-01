@@ -21,6 +21,11 @@ x-api-env: &api-env
   OSAIP_OIDC_CLIENT_ID: osaip-api
   OSAIP_OIDC_CLIENT_SECRET: osaip-dev-secret
   OSAIP_PUBLIC_URL: http://localhost:5173
+  # Mesh (ADR-0008): shared service token; the mesh is internal-only (no published
+  # port) so it can never be reached around the api's authz.
+  OSAIP_MESH_SERVICE_TOKEN: dev-mesh-token-not-for-prod
+  OSAIP_MESH_URL: http://mesh:8100
+  OSAIP_MESH_URL_ALLOWLIST: ollama
 
 services:
   postgres:
@@ -104,6 +109,31 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/healthz').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  mesh:
+    # The LLM Mesh (spec §5b): every model call passes through here. Deliberately NOT
+    # port-published — api/worker reach it on the compose network with a service token.
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    command:
+      ["uv", "run", "--no-sync", "uvicorn", "osaip_mesh.main:app",
+       "--host", "0.0.0.0", "--port", "8100", "--reload"]
+    environment: *api-env
+    volumes:
+      - ../../apps/mesh/osaip_mesh:/repo/apps/mesh/osaip_mesh
+      - ../../apps/api/osaip_api:/repo/apps/api/osaip_api
+      - ../../packages/shared/osaip_shared:/repo/packages/shared/osaip_shared
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8100/healthz').status==200 else 1)\""]
       interval: 10s
       timeout: 5s
       retries: 12

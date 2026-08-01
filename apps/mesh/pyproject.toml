@@ -1,0 +1,29 @@
+[project]
+name = "osaip-mesh"
+version = "0.1.0"
+description = "OSAIP LLM Mesh — the gateway every model call passes through (spec §5b)"
+requires-python = ">=3.12"
+dependencies = [
+    # The mesh imports osaip_api models/Vault/events, like the worker does
+    # (ADR-0008 §11; the ADR-0007 §8 refactor trigger covers all three consumers).
+    "osaip-api",
+    "osaip-shared",
+    "fastapi>=0.116",
+    "uvicorn[standard]>=0.35",
+    "sqlalchemy[asyncio]>=2.0.41",
+    "asyncpg>=0.30",
+    "pydantic>=2.11",
+    "pydantic-settings>=2.10",
+    "httpx>=0.28",
+]
+
+[tool.uv.sources]
+osaip-api = { workspace = true }
+osaip-shared = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["osaip_mesh"]

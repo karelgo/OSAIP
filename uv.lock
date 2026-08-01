@@ -20,6 +20,7 @@ members = [
     "osaip-api",
     "osaip-engine",
     "osaip-evals",
+    "osaip-mesh",
     "osaip-rag",
     "osaip-semantics",
     "osaip-shared",
@@ -1152,6 +1153,35 @@ requires-dist = [
 name = "osaip-evals"
 version = "0.1.0"
 source = { editable = "packages/evals" }
+
+[[package]]
+name = "osaip-mesh"
+version = "0.1.0"
+source = { editable = "apps/mesh" }
+dependencies = [
+    { name = "asyncpg" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "osaip-api" },
+    { name = "osaip-shared" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "asyncpg", specifier = ">=0.30" },
+    { name = "fastapi", specifier = ">=0.116" },
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "osaip-api", editable = "apps/api" },
+    { name = "osaip-shared", editable = "packages/shared" },
+    { name = "pydantic", specifier = ">=2.11" },
+    { name = "pydantic-settings", specifier = ">=2.10" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.41" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.35" },
+]
 
 [[package]]
 name = "osaip-rag"

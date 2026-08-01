@@ -528,3 +528,306 @@ class JobStep(Base):
     finished_at: Mapped[datetime.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+# ── Phase 3a: the LLM Mesh (ADR-0008) ────────────────────────────────────────────
+
+PROVIDERS = ("echo", "openai", "anthropic", "ollama")
+DATA_RESIDENCY = ("local", "eu", "external")
+
+
+class LlmConnection(Base):
+    """A model endpoint the mesh may call (spec §4). Credentials live in `secrets`;
+    `data_residency` is OPERATOR-ASSERTED metadata the CP-11 gate acts on (ADR-0008
+    §7) — it records an assertion, it does not prove geography."""
+
+    __tablename__ = "llm_connections"
+    __table_args__ = (
+        CheckConstraint("scope IN ('global', 'project')", name="scope"),
+        CheckConstraint("provider IN ('echo', 'openai', 'anthropic', 'ollama')", name="provider"),
+        CheckConstraint("data_residency IN ('local', 'eu', 'external')", name="data_residency"),
+        CheckConstraint("audit_mode IN ('full', 'redacted', 'off')", name="audit_mode"),
+        CheckConstraint("status IN ('active', 'archived')", name="status"),
+        # Global connections have no project; project-scoped ones must have one.
+        CheckConstraint(
+            "(scope = 'global' AND project_id IS NULL) OR "
+            "(scope = 'project' AND project_id IS NOT NULL)",
+            name="scope_project",
+        ),
+        UniqueConstraint("project_id", "name", name="uq_llm_connections_project_name"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    scope: Mapped[str] = mapped_column(String(16), nullable=False, default="project")
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    base_config: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    allowed_models: Mapped[list[str]] = mapped_column(
+        ARRAY(String(200)), nullable=False, server_default=text("'{}'::text[]")
+    )
+    secret_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("secrets.id", ondelete="SET NULL"), nullable=True
+    )
+    guardrail_policy_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("guardrail_policies.id", ondelete="SET NULL"), nullable=True
+    )
+    cache_ttl_s: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    audit_mode: Mapped[str] = mapped_column(String(16), nullable=False, default="redacted")
+    data_residency: Mapped[str] = mapped_column(String(16), nullable=False, default="external")
+    # CP-2 / Art 30 RoPA: an LLM connection is a processor relationship.
+    legal_basis: Mapped[str] = mapped_column(String(500), nullable=False)
+    purpose_codes: Mapped[list[str]] = mapped_column(ARRAY(String(100)), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()
+
+
+class GuardrailPolicy(Base):
+    """Named stage configuration. The baseline PII-redaction stage is applied to every
+    call regardless of policy and cannot be removed (BIO2 8.12, ADR-0008 §5)."""
+
+    __tablename__ = "guardrail_policies"
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", name="uq_guardrail_policies_project_name"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    stages: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()
+
+
+class Trace(Base):
+    """Root of a span tree (spec §4). Phase 3a writes recipe/manual roots; agents,
+    chat, evals and semantic plans join in later phases."""
+
+    __tablename__ = "traces"
+    __table_args__ = (
+        CheckConstraint(
+            "root_kind IN ('agent', 'recipe', 'chat', 'eval', 'semantic', 'manual')",
+            name="root_kind",
+        ),
+    )
+
+    trace_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    root_kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    agent_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    started_at: Mapped[datetime.datetime] = _created_at()
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    span_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class Span(Base):
+    __tablename__ = "spans"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('llm', 'tool', 'retrieval', 'guardrail', 'agent', 'plan', 'recipe')",
+            name="kind",
+        ),
+        Index("ix_spans_trace", "trace_id", "t0"),
+    )
+
+    span_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    trace_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("traces.trace_id", ondelete="CASCADE"), nullable=False
+    )
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    input_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    output_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cost_micros: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    t0: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    t1: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="ok")
+
+
+class LlmCall(Base):
+    """The usage ledger (spec §4 + build attribution). Rows are plain inserts in their
+    OWN short transaction — deliberately outside the hash-chained audit's global
+    advisory lock, so per-row LLM builds never serialize the platform (ADR-0008 §8)."""
+
+    __tablename__ = "llm_calls"
+    __table_args__ = (
+        Index("ix_llm_calls_project_ts", "project_id", "ts"),
+        Index("ix_llm_calls_job", "job_id"),
+        Index("ix_llm_calls_trace", "trace_id"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    ts: Mapped[datetime.datetime] = _created_at()
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    agent_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    session_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    trace_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    span_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # Attribution: which build/step/row produced this call (§6.3(7) "why?").
+    job_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    job_step_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    row_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    connection_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("llm_connections.id", ondelete="SET NULL"), nullable=True
+    )
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    model: Mapped[str] = mapped_column(String(200), nullable=False)
+    model_version: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    purpose: Mapped[str] = mapped_column(String(50), nullable=False, default="general")
+    tokens_in: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tokens_out: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tokens_estimated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR")
+    pricing_unknown: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    latency_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cache_hit: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ok")
+    guardrail_events_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class LlmCallMessage(Base):
+    """Audited prompt/response text. `content_redacted` is ALWAYS stored; the raw
+    variant only when the connection's audit_mode='full' (ADR-0008 §8)."""
+
+    __tablename__ = "llm_call_messages"
+    __table_args__ = (UniqueConstraint("call_id", "seq", name="uq_llm_call_messages_call_seq"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    call_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("llm_calls.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    content_redacted: Mapped[str] = mapped_column(Text, nullable=False)
+    content_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class LlmCache(Base):
+    """Response cache keyed on the REDACTED payload (ADR-0008 §4); project_id is part
+    of the key so a global connection never leaks one project's completions."""
+
+    __tablename__ = "llm_cache"
+
+    request_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    connection_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("llm_connections.id", ondelete="CASCADE"), nullable=True
+    )
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    response_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    tokens_in: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tokens_out: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime.datetime] = _created_at()
+    expires_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+
+
+class Quota(Base):
+    __tablename__ = "quotas"
+    __table_args__ = (
+        CheckConstraint(
+            "scope_type IN ('project', 'user', 'connection', 'agent')", name="scope_type"
+        ),
+        CheckConstraint("period IN ('day', 'month')", name="period"),
+        CheckConstraint("action IN ('warn', 'block')", name="action"),
+        UniqueConstraint("scope_type", "scope_id", "period", name="uq_quotas_scope_period"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    scope_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    scope_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    period: Mapped[str] = mapped_column(String(10), nullable=False, default="month")
+    limit_cost_micros: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    limit_calls: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    action: Mapped[str] = mapped_column(String(10), nullable=False, default="block")
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()
+
+
+class QuotaReservation(Base):
+    """Reserve/settle (ADR-0008 §3): a reservation is visible to concurrent callers'
+    window sums, so parallel calls cannot collectively overshoot a budget."""
+
+    __tablename__ = "quota_reservations"
+    __table_args__ = (Index("ix_quota_reservations_scope_ts", "scope_type", "scope_id", "ts"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    scope_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    scope_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    ts: Mapped[datetime.datetime] = _created_at()
+    estimated_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    settled_micros: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    call_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+
+
+class GuardrailEvent(Base):
+    __tablename__ = "guardrail_events"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    call_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("llm_calls.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    stage: Mapped[str] = mapped_column(String(20), nullable=False)
+    rule: Mapped[str] = mapped_column(String(100), nullable=False)
+    action: Mapped[str] = mapped_column(String(20), nullable=False)
+    details: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    created_at: Mapped[datetime.datetime] = _created_at()
+
+
+class Prompt(Base):
+    """Prompt registry (spec §4). System prompts are assembled server-side FROM HERE —
+    a client may select a version, never supply the system role (§5d, ADR-0008 §6)."""
+
+    __tablename__ = "prompts"
+    __table_args__ = (
+        UniqueConstraint("project_id", "name", "version", name="uq_prompts_project_name_version"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    template: Mapped[str] = mapped_column(Text, nullable=False)
+    variables: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    model_defaults: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    tags: Mapped[list[str]] = mapped_column(
+        ARRAY(String(50)), nullable=False, server_default=text("'{}'::text[]")
+    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime.datetime] = _created_at()
+    updated_at: Mapped[datetime.datetime] = _updated_at()

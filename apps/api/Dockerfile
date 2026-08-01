@@ -9,10 +9,12 @@ ENV UV_LINK_MODE=copy UV_COMPILE_BYTECODE=1
 COPY pyproject.toml uv.lock .python-version ./
 COPY packages packages
 COPY apps/api/pyproject.toml apps/api/pyproject.toml
+COPY apps/mesh/pyproject.toml apps/mesh/pyproject.toml
 COPY apps/worker/pyproject.toml apps/worker/pyproject.toml
 RUN uv sync --frozen --all-packages --no-install-workspace
 
 COPY apps/api apps/api
+COPY apps/mesh apps/mesh
 COPY apps/worker apps/worker
 RUN uv sync --frozen --all-packages
 

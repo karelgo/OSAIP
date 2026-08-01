@@ -16,9 +16,11 @@ jobs:
       - run: uv sync --frozen --all-packages
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run mypy --strict packages/shared packages/engine apps/api/osaip_api apps/worker/osaip_worker
+      - run: uv run mypy --strict packages/shared packages/engine apps/api/osaip_api apps/mesh/osaip_mesh apps/worker/osaip_worker
       - name: No eval/exec in the engine (recipe expression language is AST-compiled)
         run: '! grep -rnE "\beval\(|\bexec\(" packages/engine/osaip_engine/'
+      - name: No provider SDK outside apps/mesh (spec §5b — every call goes through the mesh)
+        run: '! grep -rnE "^(from|import) (litellm|openai|anthropic)\b" --include="*.py" apps packages --exclude-dir=mesh'
       - run: uv run pytest
 
   web:
@@ -61,8 +63,8 @@ jobs:
           cache: pnpm
       - run: uv sync --frozen --all-packages
       - run: pnpm install --frozen-lockfile
-      - name: Boot stack (postgres, keycloak, seaweedfs, api, worker)
-        run: docker compose -f infra/compose/docker-compose.yml --project-name osaip up -d --build --wait postgres keycloak seaweedfs api worker
+      - name: Boot stack (postgres, keycloak, seaweedfs, api, mesh, worker)
+        run: docker compose -f infra/compose/docker-compose.yml --project-name osaip up -d --build --wait postgres keycloak seaweedfs api mesh worker
       - name: Seed demo data
         run: make seed
         env:
