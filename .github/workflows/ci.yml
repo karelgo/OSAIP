@@ -16,7 +16,7 @@ jobs:
       - run: uv sync --frozen --all-packages
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run mypy --strict packages/shared packages/engine apps/api/osaip_api apps/mesh/osaip_mesh apps/worker/osaip_worker
+      - run: uv run mypy --strict packages/shared packages/engine packages/guardrails/osaip_guardrails apps/api/osaip_api apps/mesh/osaip_mesh apps/worker/osaip_worker
       - name: No eval/exec in the engine (recipe expression language is AST-compiled)
         run: '! grep -rnE "\beval\(|\bexec\(" packages/engine/osaip_engine/'
       - name: No provider SDK outside apps/mesh (spec §5b — every call goes through the mesh)

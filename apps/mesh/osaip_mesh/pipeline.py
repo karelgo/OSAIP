@@ -17,14 +17,23 @@ as the ledger row. Guardrails and the CP-11 gate (slice 4) fill in the marked se
 import datetime
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from osaip_api.notifications import notify
+from osaip_guardrails.policy import BASELINE, PolicyConfig
 from osaip_mesh.cache import cache_lookup, cache_store, compute_request_hash, is_cacheable
 from osaip_mesh.cost import compute_cost, estimate_tokens
+from osaip_mesh.guardrails import (
+    enforce_residency,
+    events_payload,
+    persist_events,
+    run_post_stage,
+    run_pre_stage,
+)
 from osaip_mesh.ledger import LedgerEntry, ensure_trace, record_call, record_span
 from osaip_mesh.providers.base import (
     CompletionRequest,
@@ -46,6 +55,9 @@ class ConnectionInfo:
     cache_ttl_s: int = 0
     audit_mode: str = "redacted"
     data_residency: str = "local"
+    name: str | None = None
+    # Already merged with the non-removable baseline (osaip_guardrails.policy).
+    policy: PolicyConfig = BASELINE
 
 
 @dataclass
@@ -90,27 +102,45 @@ def _utcnow() -> datetime.datetime:
 async def run_pipeline(
     *,
     session: AsyncSession,
-    provider: Provider,
+    make_provider: Callable[[], Provider],
     connection: ConnectionInfo,
     request: CompletionRequest,
     context: CallContext,
 ) -> MeshOutcome:
     """Execute one model call through the mesh. Blocking work belongs in the stages;
-    this function owns the ORDER, which is the part that must never drift."""
+    this function owns the ORDER, which is the part that must never drift.
+
+    The provider is built by a FACTORY rather than passed in, so that constructing it
+    (which can fail on bad config or an SSRF-rejected URL, and used to happen in the
+    router) cannot preempt the CP-11 gate. A sovereignty refusal must be recorded as a
+    sovereignty refusal, not reported as a configuration error.
+    """
     started_at = _utcnow()
     started = time.perf_counter()
 
-    # ── CP-11 residency gate lands in slice 4 ────────────────────────────────────
-    # ── guardrails `pre` land in slice 4; until then redaction is the identity, but
-    #    everything downstream already reads the REDACTED list, so switching the stage
-    #    on cannot change the order. ────────────────────────────────────────────────
+    # ── CP-11 residency gate: before any redaction, because the question "may this
+    #    class of data go to this endpoint at all?" is not softened by redacting it ──
+    residency_event = await enforce_residency(
+        session,
+        classification=context.max_classification,
+        residency=connection.data_residency,
+        project_id=context.project_id,
+        user_id=context.user_id,
+        connection_id=connection.id,
+        connection_name=connection.name,
+    )
+
+    # ── guardrails `pre` (redact) ────────────────────────────────────────────────
     raw_messages: list[Message] = list(request.messages)
-    redacted_messages: list[Message] = [
-        Message(role=m.role, content=m.content) for m in raw_messages
-    ]
+    pre = run_pre_stage(raw_messages, connection.policy)
+    redacted_messages = pre.messages
+    guardrail_events = [residency_event, *pre.events]
     # The provider is called with the redacted payload — that is the point of redacting
     # before the call, not merely before storage.
     provider_request = replace(request, messages=redacted_messages)
+
+    # Built only now: after the gate, before any budget is held.
+    provider = make_provider()
 
     request_hash = compute_request_hash(
         connection_id=connection.id,
@@ -169,10 +199,11 @@ async def run_pipeline(
             cost.pricing_unknown,
         )
 
-    # ── guardrails `post` land in slice 4 ────────────────────────────────────────
-    answer = Message(role="assistant", content=result.content)
-    audited_redacted = [*redacted_messages, answer]
-    audited_raw = [*raw_messages, answer]
+    # ── guardrails `post`: validate the shape, redact the copy we store ─────────
+    audited_answer, post_events = run_post_stage(result.content, connection.policy)
+    guardrail_events.extend(post_events)
+    audited_redacted = [*redacted_messages, Message(role="assistant", content=audited_answer)]
+    audited_raw = [*raw_messages, Message(role="assistant", content=result.content)]
 
     latency_ms = int((time.perf_counter() - started) * 1000)
     finished_at = _utcnow()
@@ -220,11 +251,13 @@ async def run_pipeline(
             job_step_id=context.job_step_id,
             row_key=context.row_key,
             request_hash=request_hash,
+            guardrail_events=events_payload(guardrail_events),
         ),
         messages_redacted=audited_redacted,
         messages_raw=audited_raw,
         audit_mode=connection.audit_mode,
     )
+    persist_events(session, guardrail_events, call_id=call.id, project_id=context.project_id)
     if cacheable and cached is None:
         await cache_store(
             session,
@@ -257,6 +290,7 @@ async def run_pipeline(
         model_version=result.model_version,
         call_id=call.id,
         trace_id=trace_id,
+        guardrail_events=events_payload(guardrail_events),
         quota_warnings=[_warning_payload(w) for w in reservation.warnings],
     )
 

@@ -178,7 +178,7 @@ async def test_provider_failure_is_ledgered_with_status_error(
     with pytest.raises(ProviderError):
         await run_pipeline(
             session=mesh_session,
-            provider=_FailingProvider(),
+            make_provider=_FailingProvider,
             connection=connection,
             request=request,
             context=CallContext(project_id=project.id),
@@ -201,7 +201,7 @@ async def test_unexpected_provider_exception_is_sanitized(mesh_session: AsyncSes
     with pytest.raises(ProviderError) as excinfo:
         await run_pipeline(
             session=mesh_session,
-            provider=_LeakyProvider(),
+            make_provider=_LeakyProvider,
             connection=ConnectionInfo(id=None, provider="leaky"),
             request=request,
             context=CallContext(),

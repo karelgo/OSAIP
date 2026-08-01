@@ -20,6 +20,7 @@ members = [
     "osaip-api",
     "osaip-engine",
     "osaip-evals",
+    "osaip-guardrails",
     "osaip-mesh",
     "osaip-rag",
     "osaip-semantics",
@@ -1153,6 +1154,11 @@ requires-dist = [
 name = "osaip-evals"
 version = "0.1.0"
 source = { editable = "packages/evals" }
+
+[[package]]
+name = "osaip-guardrails"
+version = "0.1.0"
+source = { editable = "packages/guardrails" }
 
 [[package]]
 name = "osaip-mesh"

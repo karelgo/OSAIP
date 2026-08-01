@@ -78,6 +78,9 @@ async def test_echo_refuses_non_local_residency(
             "connection_id": str(connection.id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "hi"}],
+            # Declared `none` so the CP-11 gate lets it through and the echo-must-be-
+            # local rule is what bites.
+            "max_classification": "none",
         },
     )
     assert response.status_code == 422
@@ -109,6 +112,7 @@ async def test_litellm_providers_are_not_wired_yet(
             "connection_id": str(connection.id),
             "model": "some-model",
             "messages": [{"role": "user", "content": "hi"}],
+            "max_classification": "none",  # past the CP-11 gate, into the provider seam
         },
     )
     assert response.status_code == 501  # arrives with the LiteLLM adapter (slice 5)

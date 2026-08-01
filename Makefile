@@ -25,7 +25,7 @@ lint: lint-py lint-web
 lint-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/shared packages/engine apps/api/osaip_api apps/mesh/osaip_mesh apps/worker/osaip_worker
+	uv run mypy --strict packages/shared packages/engine packages/guardrails/osaip_guardrails apps/api/osaip_api apps/mesh/osaip_mesh apps/worker/osaip_worker
 	# No eval/exec in the engine — the recipe expression language is AST-compiled (§10, ADR-0007).
 	@! grep -rnE '\beval\(|\bexec\(' packages/engine/osaip_engine/ \
 		|| (echo "FAIL: eval(/exec( found in engine" && exit 1)
