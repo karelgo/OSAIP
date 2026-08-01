@@ -132,7 +132,7 @@ async def run_pipeline(
 
     # ── guardrails `pre` (redact) ────────────────────────────────────────────────
     raw_messages: list[Message] = list(request.messages)
-    pre = run_pre_stage(raw_messages, connection.policy)
+    pre = await run_pre_stage(raw_messages, connection.policy)
     redacted_messages = pre.messages
     guardrail_events = [residency_event, *pre.events]
     # The provider is called with the redacted payload — that is the point of redacting

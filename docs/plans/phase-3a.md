@@ -93,7 +93,9 @@ settings-tab + side-panel web patterns · `object_refs` upsert · e2e helpers.
 
 ## New dependencies (§3.1)
 `litellm` (MIT, pinned exact) · `presidio-analyzer==2.2.362` + `presidio-anonymizer`
-(MIT) · `spacy` (MIT) + `nl_core_news_sm` (MIT, pinned wheel, baked at build) ·
+(MIT) · `spacy` (MIT) + `nl_core_news_sm` (**CC BY-SA 4.0 — NOT MIT as recorded here;
+the §3.1 gate caught it. OSAIP does not redistribute the model; operators install the
+pinned wheel themselves — ADR-0009**) ·
 `tiktoken` (MIT, estimate-only). Verified: presidio 2.2.362 + spacy 3.8.14 + numpy
 2.5.1 co-resolve.
 

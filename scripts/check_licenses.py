@@ -35,6 +35,15 @@ ALLOWED = [
 ]
 ALLOWED_RE = re.compile("|".join(ALLOWED), re.IGNORECASE)
 
+# Artifacts OSAIP does NOT redistribute. Excluded by NAME with a reason — deliberately
+# not an allowlist entry, because the license itself stays disallowed: baking one of
+# these into a shipped image must still fail this gate.
+NOT_REDISTRIBUTED = {
+    # CC BY-SA 4.0. Operator-installed for optional Dutch NER; never in an OSAIP image.
+    # CI and `make spacy-model` install it to exercise the code path (ADR-0009).
+    "nl-core-news-sm": "ADR-0009: operator-installed, not shipped by OSAIP",
+}
+
 # Distributions whose metadata is missing/odd but whose license is verified manually.
 PYTHON_OVERRIDES = {
     "typing-extensions": "PSF-2.0",
@@ -46,8 +55,11 @@ PYTHON_OVERRIDES = {
 def python_violations() -> list[str]:
     problems = []
     for dist in metadata.distributions():
-        name = (dist.metadata.get("Name") or "unknown").lower()
+        # PEP 503 normalisation: metadata may use either underscores or hyphens.
+        name = (dist.metadata.get("Name") or "unknown").lower().replace("_", "-")
         if name in PYTHON_OVERRIDES:
+            continue
+        if name in NOT_REDISTRIBUTED:
             continue
         # First-party workspace packages: OSAIP's own license is a project decision
         # (tracked in the phase summary), not a dependency-policy question.

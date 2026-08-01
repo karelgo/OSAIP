@@ -86,6 +86,44 @@ this list. Items marked [org] are organisational, not platform switches.
 - [ ] [org] Point `/.well-known/security.txt` Contact at the real security office
       and publish the CVD policy.
 
+## LLM Mesh (Phase 3)
+
+- [ ] `OSAIP_MESH_SERVICE_TOKEN` set from a secret store, and NOT the dev default. The
+      mesh has no other authentication and is never published to the browser.
+- [ ] The mesh service has **no published port** in your compose/Helm values — every
+      model call goes through it, so nothing may reach a provider around it (§5b).
+- [ ] Each LLM connection's `data_residency` reflects reality. It is
+      **operator-asserted metadata**: OSAIP enforces your declaration and audits it, but
+      cannot verify where a remote endpoint runs (ADR-0008 §7). Getting this wrong
+      silently defeats the CP-11 gate — record the basis for each declaration in your
+      DPIA.
+- [ ] `audit_mode` per connection is a deliberate choice. `redacted` (default) stores no
+      raw prompt text; `full` retains it and is site-admin-only; `off` stores no message
+      text at all. `full` and `off` both belong in the DPIA.
+- [ ] Every connection has a quota (§10: budgets are mandatory from Phase 3). Decide
+      `warn` vs `block` per scope; `block` returns 429 `quota-exceeded`.
+- [ ] `llm_calls` / `llm_call_messages` / `spans` retention ≥ 6 months (AI Act Art
+      26(6)); the worker prune never deletes inside the window.
+- [ ] Review `model_prices.json` (`_verified_on`) against your contracts. An unpriced
+      model costs 0 and is flagged `pricing_unknown` — the platform never guesses.
+
+### Optional: Dutch NER (name/place detection)
+
+The deterministic PII layer — BSN (11-proef), IBAN (mod-97), email, phone — is **always
+on** and needs no model, no network and no extra step.
+
+Model-backed detection of names, places and dates is opt-in because the Dutch spaCy
+model is **CC BY-SA 4.0** and OSAIP does not redistribute it (ADR-0009). To enable it:
+
+- [ ] Install the pinned wheel into the image or runtime environment:
+      `uv pip install "https://github.com/explosion/spacy-models/releases/download/nl_core_news_sm-3.8.0/nl_core_news_sm-3.8.0-py3-none-any.whl"`
+      — stage the file yourself for an air-gapped install; OSAIP never downloads a model
+      at runtime.
+- [ ] Set `presidio: true` in the `pre` stage of a guardrail policy, and attach that
+      policy to the connections that need it.
+- [ ] Confirm it is actually loaded before relying on it: without the model the mesh
+      raises rather than silently falling back to regex-only.
+
 ## Not yet in scope (tracked deferrals, ADR-0005)
 
 - SIEM/syslog(CEF) export of audit/ledger streams — lands Phase 3.

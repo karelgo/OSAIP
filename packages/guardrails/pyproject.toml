@@ -8,6 +8,17 @@ requires-python = ">=3.12"
 # model are an optional extra layered on top (ADR-0008 §5).
 dependencies = []
 
+# Presidio is an EXTRA, not a dependency: the deterministic layer above must keep
+# working in an install that has neither. Pinned exactly (§3.1). The spaCy MODEL is
+# deliberately absent — nl_core_news_sm is CC BY-SA 4.0 and OSAIP does not redistribute
+# it; operators install the pinned wheel themselves (ADR-0009).
+[project.optional-dependencies]
+presidio = [
+    "presidio-analyzer==2.2.362",
+    "presidio-anonymizer==2.2.360",
+    "spacy>=3.8,<3.9",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

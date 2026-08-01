@@ -8,6 +8,8 @@ dependencies = [
     # (ADR-0008 §11; the ADR-0007 §8 refactor trigger covers all three consumers).
     "osaip-api",
     "osaip-shared",
+    # The mesh is the only consumer that needs the model-backed PII layer.
+    "osaip-guardrails[presidio]",
     "fastapi>=0.116",
     "uvicorn[standard]>=0.35",
     "sqlalchemy[asyncio]>=2.0.41",
@@ -20,6 +22,7 @@ dependencies = [
 [tool.uv.sources]
 osaip-api = { workspace = true }
 osaip-shared = { workspace = true }
+osaip-guardrails = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

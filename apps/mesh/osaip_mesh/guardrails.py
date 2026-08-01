@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from osaip_api.audit import write_audit
 from osaip_api.models import GuardrailEvent as GuardrailEventRow
-from osaip_guardrails.policy import PolicyConfig, run_post, run_pre
+from osaip_guardrails.policy import PolicyConfig, run_post, run_pre_async
 from osaip_guardrails.sovereignty import check_residency, refusal_reason
 from osaip_guardrails.types import GuardrailEvent
 from osaip_mesh.providers.base import Message
@@ -96,14 +96,15 @@ async def enforce_residency(
     )
 
 
-def run_pre_stage(messages: list[Message], policy: PolicyConfig) -> PreResult:
+async def run_pre_stage(messages: list[Message], policy: PolicyConfig) -> PreResult:
     """Redact every message. Each message is scanned independently so an offset in one
     can never shift another, and the role is preserved so the provider still sees the
-    conversation it was given."""
+    conversation it was given. Async because the optional Presidio pass is CPU-bound and
+    gets offloaded to a thread."""
     redacted: list[Message] = []
     events: list[GuardrailEvent] = []
     for message in messages:
-        result = run_pre(message.content, policy)
+        result = await run_pre_async(message.content, policy)
         if result.blocked:
             raise InputRejected(result.reason or "The prompt was rejected.", events=result.events)
         events.extend(result.events)

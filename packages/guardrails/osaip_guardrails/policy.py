@@ -11,10 +11,11 @@ text; it stores the original alongside the redacted copy, it does not stop redac
 from happening before the provider call.
 """
 
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
-from osaip_guardrails.redact import redact
+from osaip_guardrails.redact import apply_redactions, redact
 from osaip_guardrails.schema import validate_json_text
 from osaip_guardrails.types import Action, GuardrailEvent, StageResult
 
@@ -127,3 +128,39 @@ def run_post(text: str, policy: PolicyConfig) -> StageResult:
     redacted = redact(text, stage="post")
     events.extend(redacted.events)
     return StageResult(text=redacted.text, events=events)
+
+
+async def run_pre_async(text: str, policy: PolicyConfig) -> StageResult:
+    """`run_pre` plus the optional model-backed pass.
+
+    Presidio runs over the ALREADY-REDACTED text: the deterministic layer has first
+    claim (its checksums beat any score), and running second keeps offsets valid without
+    a merge step. Import is local so the package still works with the extra uninstalled.
+    """
+    result = run_pre(text, policy)
+    if result.blocked or not policy.use_presidio:
+        return result
+
+    from osaip_guardrails.presidio_nl import analyze_async
+
+    detections = await analyze_async(result.text)
+    if not detections:
+        return result
+
+    counts = Counter(d.kind for d in detections)
+    return StageResult(
+        text=apply_redactions(result.text, detections),
+        events=[
+            *result.events,
+            GuardrailEvent(
+                stage="pre",
+                rule="pii.presidio",
+                action=Action.REDACT,
+                details={
+                    "counts": dict(sorted(counts.items())),
+                    "total": len(detections),
+                    "model": "nl_core_news_sm",
+                },
+            ),
+        ],
+    )

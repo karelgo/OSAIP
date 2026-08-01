@@ -1,7 +1,8 @@
 # OSAIP developer entrypoints (spec §3.3). All targets run from the repo root.
 COMPOSE := docker compose -f infra/compose/docker-compose.yml --project-name osaip
+SPACY_NL_WHEEL := https://github.com/explosion/spacy-models/releases/download/nl_core_news_sm-3.8.0/nl_core_news_sm-3.8.0-py3-none-any.whl
 
-.PHONY: dev dev-down test test-py test-web lint lint-py lint-web e2e seed ci gen-api
+.PHONY: dev dev-down test test-py test-web spacy-model lint lint-py lint-web e2e seed ci gen-api
 
 ## dev: boot the full dev stack (postgres+pgvector, seaweedfs, keycloak, api, worker, web)
 dev:
@@ -13,8 +14,15 @@ dev-down:
 ## test: all unit/integration tests (Python + web)
 test: test-py test-web
 
-test-py:
+test-py: spacy-model
 	uv run pytest
+
+## spacy-model: install the pinned Dutch NER model (a BUILD step — OSAIP never
+## downloads a model at runtime). `uv sync` prunes it because it is not in the lock,
+## so this re-adds it; uv caches the wheel, so repeat runs are offline.
+spacy-model:
+	@uv run python -c "import spacy,sys; sys.exit(0 if spacy.util.is_package('nl_core_news_sm') else 1)" 2>/dev/null \
+		|| uv pip install --quiet "$(SPACY_NL_WHEEL)"
 
 test-web:
 	pnpm run test

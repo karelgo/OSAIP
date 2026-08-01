@@ -18,6 +18,12 @@ COPY apps/mesh apps/mesh
 COPY apps/worker apps/worker
 RUN uv sync --frozen --all-packages
 
+# The Dutch spaCy model for Presidio is deliberately NOT baked in: nl_core_news_sm is
+# CC BY-SA 4.0, and OSAIP does not redistribute it (ADR-0009). Operators who want
+# name/place detection install the pinned wheel themselves — see
+# docs/deployment.md#optional-dutch-ner. The deterministic BSN/IBAN/email/phone layer
+# is always on and needs no model.
+
 # Bake DuckDB extensions into a HOME-independent directory (ADR-0006 §3). Runtime
 # connections set autoinstall/autoload=false and LOAD explicitly — a missing
 # extension fails loudly instead of silently downloading.

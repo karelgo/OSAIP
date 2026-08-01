@@ -16,6 +16,8 @@ jobs:
       - run: uv sync --frozen --all-packages
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      # Same pinned wheel as the image, so CI exercises the real Presidio path.
+      - run: uv pip install "https://github.com/explosion/spacy-models/releases/download/nl_core_news_sm-3.8.0/nl_core_news_sm-3.8.0-py3-none-any.whl"
       - run: uv run mypy --strict packages/shared packages/engine packages/guardrails/osaip_guardrails apps/api/osaip_api apps/mesh/osaip_mesh apps/worker/osaip_worker
       - name: No eval/exec in the engine (recipe expression language is AST-compiled)
         run: '! grep -rnE "\beval\(|\bexec\(" packages/engine/osaip_engine/'
