@@ -6,41 +6,13 @@ from typing import Any
 
 import httpx
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from osaip_api.models import LlmConnection, Project
-from osaip_shared.ids import new_id
-
-
-async def _project(session: AsyncSession) -> Project:
-    project = Project(id=new_id(), key=f"m{uuid.uuid4().hex[:8]}", name="mesh", storage_prefix="p")
-    session.add(project)
-    await session.flush()
-    return project
+# `make_connection` is a conftest fixture (an async builder); tests annotate it Any
+# rather than importing across test modules — the tests dir is not a package.
 
 
-async def _connection(session: AsyncSession, **overrides: Any) -> LlmConnection:
-    project = await _project(session)
-    connection = LlmConnection(
-        id=new_id(),
-        scope="project",
-        project_id=project.id,
-        name=overrides.pop("name", f"echo-{uuid.uuid4().hex[:6]}"),
-        provider=overrides.pop("provider", "echo"),
-        base_config=overrides.pop("base_config", {}),
-        allowed_models=overrides.pop("allowed_models", ["echo-1"]),
-        data_residency=overrides.pop("data_residency", "local"),
-        legal_basis="demo",
-        purpose_codes=["demo"],
-        **overrides,
-    )
-    session.add(connection)
-    await session.commit()
-    return connection
-
-
-async def test_requires_service_token(mesh_app: Any, mesh_session: AsyncSession) -> None:
-    connection = await _connection(mesh_session)
+async def test_requires_service_token(mesh_app: Any, make_connection: Any) -> None:
+    connection = await make_connection()
     transport = httpx.ASGITransport(app=mesh_app)
     async with httpx.AsyncClient(transport=transport, base_url="http://mesh") as anon:
         response = await anon.post(
@@ -56,9 +28,9 @@ async def test_requires_service_token(mesh_app: Any, mesh_session: AsyncSession)
 
 
 async def test_echo_completion_is_deterministic_and_counted(
-    mesh_client: httpx.AsyncClient, mesh_session: AsyncSession
+    mesh_client: httpx.AsyncClient, make_connection: Any
 ) -> None:
-    connection = await _connection(mesh_session)
+    connection = await make_connection()
     payload = {
         "connection_id": str(connection.id),
         "model": "echo-1",
@@ -80,9 +52,9 @@ async def test_echo_completion_is_deterministic_and_counted(
 
 
 async def test_model_allowlist_is_enforced(
-    mesh_client: httpx.AsyncClient, mesh_session: AsyncSession
+    mesh_client: httpx.AsyncClient, make_connection: Any
 ) -> None:
-    connection = await _connection(mesh_session, allowed_models=["echo-1"])
+    connection = await make_connection(allowed_models=["echo-1"])
     response = await mesh_client.post(
         "/v1/complete",
         json={
@@ -96,10 +68,10 @@ async def test_model_allowlist_is_enforced(
 
 
 async def test_echo_refuses_non_local_residency(
-    mesh_client: httpx.AsyncClient, mesh_session: AsyncSession
+    mesh_client: httpx.AsyncClient, make_connection: Any
 ) -> None:
     """A mock must never be configured as if it were an external provider."""
-    connection = await _connection(mesh_session, data_residency="external")
+    connection = await make_connection(data_residency="external")
     response = await mesh_client.post(
         "/v1/complete",
         json={
@@ -126,10 +98,10 @@ async def test_unknown_connection_404(mesh_client: httpx.AsyncClient) -> None:
 
 @pytest.mark.parametrize("provider", ["openai", "anthropic", "ollama"])
 async def test_litellm_providers_are_not_wired_yet(
-    mesh_client: httpx.AsyncClient, mesh_session: AsyncSession, provider: str
+    mesh_client: httpx.AsyncClient, make_connection: Any, provider: str
 ) -> None:
-    connection = await _connection(
-        mesh_session, provider=provider, allowed_models=[], data_residency="external"
+    connection = await make_connection(
+        provider=provider, allowed_models=[], data_residency="external"
     )
     response = await mesh_client.post(
         "/v1/complete",

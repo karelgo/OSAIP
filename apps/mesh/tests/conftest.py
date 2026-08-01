@@ -2,8 +2,10 @@
 with lifespan managed, plus a client that carries the service token."""
 
 import os
-from collections.abc import AsyncIterator, Iterator
+import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
@@ -14,8 +16,10 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 from testcontainers.postgres import PostgresContainer
 
+from osaip_api.models import LlmConnection, Project
 from osaip_mesh.app import create_mesh_app
 from osaip_mesh.config import MeshSettings
+from osaip_shared.ids import new_id
 
 API_DIR = Path(__file__).resolve().parents[2] / "api"
 TEST_TOKEN = "test-mesh-token"  # noqa: S105 — fixed test-only shared secret
@@ -61,3 +65,46 @@ async def mesh_client(mesh_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
 async def mesh_session(mesh_app: FastAPI) -> AsyncIterator[AsyncSession]:
     async with mesh_app.state.sessionmaker() as session:
         yield session
+
+
+# Builders live here rather than in a test module so every spec shares them without
+# cross-importing test files (the tests dir is deliberately not a package).
+MakeProject = Callable[[], Awaitable[Project]]
+MakeConnection = Callable[..., Awaitable[LlmConnection]]
+
+
+@pytest.fixture
+def make_project(mesh_session: AsyncSession) -> MakeProject:
+    async def _make() -> Project:
+        project = Project(
+            id=new_id(), key=f"m{uuid.uuid4().hex[:8]}", name="mesh", storage_prefix="p"
+        )
+        mesh_session.add(project)
+        await mesh_session.flush()
+        return project
+
+    return _make
+
+
+@pytest.fixture
+def make_connection(mesh_session: AsyncSession, make_project: MakeProject) -> MakeConnection:
+    async def _make(**overrides: Any) -> LlmConnection:
+        project = await make_project()
+        connection = LlmConnection(
+            id=new_id(),
+            scope="project",
+            project_id=project.id,
+            name=overrides.pop("name", f"echo-{uuid.uuid4().hex[:6]}"),
+            provider=overrides.pop("provider", "echo"),
+            base_config=overrides.pop("base_config", {}),
+            allowed_models=overrides.pop("allowed_models", ["echo-1"]),
+            data_residency=overrides.pop("data_residency", "local"),
+            legal_basis="demo",
+            purpose_codes=["demo"],
+            **overrides,
+        )
+        mesh_session.add(connection)
+        await mesh_session.commit()
+        return connection
+
+    return _make

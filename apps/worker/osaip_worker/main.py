@@ -84,7 +84,15 @@ async def prune(engine: AsyncEngine, executor: "JobExecutor") -> None:
                     ),
                     {"hours": IDEMPOTENCY_RETENTION_HOURS},
                 )
-            log.info("prune ok: %s events, %s idempotency keys", events.rowcount, keys.rowcount)
+                # Expired cache rows are already unreachable (the mesh filters on
+                # expires_at when it reads); this only reclaims the space.
+                cache = await conn.execute(text("DELETE FROM llm_cache WHERE expires_at <= now()"))
+            log.info(
+                "prune ok: %s events, %s idempotency keys, %s llm cache entries",
+                events.rowcount,
+                keys.rowcount,
+                cache.rowcount,
+            )
         except Exception:
             log.exception("prune failed")
         try:

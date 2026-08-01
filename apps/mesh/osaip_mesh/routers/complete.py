@@ -16,7 +16,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from osaip_api.db import get_session
 from osaip_api.models import LlmConnection, Secret
 from osaip_api.problem import Problem
-from osaip_mesh.pipeline import CallContext, MeshOutcome, messages_from_payload, run_pipeline
+from osaip_mesh.pipeline import (
+    CallContext,
+    ConnectionInfo,
+    MeshOutcome,
+    messages_from_payload,
+    run_pipeline,
+)
 from osaip_mesh.providers.base import CompletionRequest, ProviderError
 from osaip_mesh.providers.echo import EchoProvider
 
@@ -63,6 +69,7 @@ class CompleteOut(BaseModel):
     latency_ms: int
     model_version: str | None
     call_id: str | None
+    trace_id: str | None
 
 
 async def _load_connection(session: AsyncSession, connection_id: uuid.UUID) -> LlmConnection:
@@ -147,10 +154,18 @@ async def complete(body: CompleteIn, request: Request, session: DbSession) -> di
         max_tokens=body.max_tokens,
         temperature=body.temperature,
     )
+    info = ConnectionInfo(
+        id=connection.id,
+        provider=connection.provider,
+        cache_ttl_s=connection.cache_ttl_s,
+        audit_mode=connection.audit_mode,
+        data_residency=connection.data_residency,
+    )
     try:
         outcome: MeshOutcome = await run_pipeline(
+            session=session,
             provider=provider,
-            provider_name=connection.provider,
+            connection=info,
             request=completion,
             context=context,
         )
@@ -175,4 +190,5 @@ async def complete(body: CompleteIn, request: Request, session: DbSession) -> di
         "latency_ms": outcome.latency_ms,
         "model_version": outcome.model_version,
         "call_id": str(outcome.call_id) if outcome.call_id else None,
+        "trace_id": str(outcome.trace_id) if outcome.trace_id else None,
     }
