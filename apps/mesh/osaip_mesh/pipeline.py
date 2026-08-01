@@ -9,8 +9,9 @@ deliberate and recorded in ADR-0008 §1: the literal order defeats its own accep
 criterion, because a cache hit would skip redaction and store raw PII, and the cache
 key would be computed over raw text.
 
-Slice 2 wires the ledger, traces/spans, audit storage and cache; quotas (slice 3) and
-guardrails/CP-11 (slice 4) fill in the marked seams.
+Quota reserve/settle brackets the provider call: the hold is committed before the call
+so concurrent callers can see it, and settles to the actual cost in the same transaction
+as the ledger row. Guardrails and the CP-11 gate (slice 4) fill in the marked seams.
 """
 
 import datetime
@@ -21,8 +22,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from osaip_api.notifications import notify
 from osaip_mesh.cache import cache_lookup, cache_store, compute_request_hash, is_cacheable
-from osaip_mesh.cost import compute_cost
+from osaip_mesh.cost import compute_cost, estimate_tokens
 from osaip_mesh.ledger import LedgerEntry, ensure_trace, record_call, record_span
 from osaip_mesh.providers.base import (
     CompletionRequest,
@@ -31,6 +33,7 @@ from osaip_mesh.providers.base import (
     Provider,
     ProviderError,
 )
+from osaip_mesh.quotas import QuotaStatus, Reservation, Scope, reserve, settle
 
 
 @dataclass
@@ -77,6 +80,7 @@ class MeshOutcome:
     call_id: uuid.UUID | None = None
     trace_id: uuid.UUID | None = None
     guardrail_events: list[dict[str, Any]] = field(default_factory=list)
+    quota_warnings: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _utcnow() -> datetime.datetime:
@@ -115,7 +119,12 @@ async def run_pipeline(
         redacted_messages=redacted_messages,
     )
 
-    # ── quota reserve lands in slice 3 ───────────────────────────────────────────
+    # ── quota reserve (commits, so the hold is visible to concurrent callers) ────
+    reservation = await reserve(
+        session,
+        scopes=_scopes(connection, context),
+        estimated_micros=_worst_case_micros(connection.provider, provider_request),
+    )
 
     cacheable = is_cacheable(
         ttl_s=connection.cache_ttl_s, purpose=context.purpose, temperature=request.temperature
@@ -150,6 +159,7 @@ async def run_pipeline(
                 started_at=started_at,
                 latency_ms=int((time.perf_counter() - started) * 1000),
                 reason=exc.public_message,
+                reservation=reservation,
             )
             raise
         cost = compute_cost(connection.provider, request.model, result.tokens_in, result.tokens_out)
@@ -228,6 +238,10 @@ async def run_pipeline(
             tokens_estimated=result.tokens_estimated,
             ttl_s=connection.cache_ttl_s,
         )
+    # The hold shrinks to the truth — 0 for a cache hit — in the same transaction as
+    # the ledger row, so spend and reservation can never disagree.
+    await settle(session, reservation, actual_micros=cost_micros, call_id=call.id)
+    await _notify_crossings(session, reservation, user_id=context.user_id)
     await session.commit()
 
     return MeshOutcome(
@@ -243,6 +257,7 @@ async def run_pipeline(
         model_version=result.model_version,
         call_id=call.id,
         trace_id=trace_id,
+        quota_warnings=[_warning_payload(w) for w in reservation.warnings],
     )
 
 
@@ -269,9 +284,11 @@ async def _record_failure(
     started_at: datetime.datetime,
     latency_ms: int,
     reason: str,
+    reservation: Reservation,
 ) -> None:
-    """A failed call is still a call: it consumed a quota reservation and it belongs in
-    the ledger, otherwise usage reporting silently under-counts provider trouble."""
+    """A failed call is still a call: it belongs in the ledger, otherwise usage
+    reporting silently under-counts provider trouble. Its reservation settles to 0 —
+    a failure must not keep consuming budget."""
     await session.rollback()
     trace_id = await ensure_trace(
         session,
@@ -317,7 +334,66 @@ async def _record_failure(
         messages_raw=raw_messages,
         audit_mode=connection.audit_mode,
     )
+    await settle(session, reservation, actual_micros=0, call_id=None)
     await session.commit()
+
+
+def _scopes(connection: ConnectionInfo, context: CallContext) -> list[Scope]:
+    """Every budget this call is subject to. A call can be under several at once (its
+    project, its user, its connection); all of them must have room."""
+    scopes = []
+    if context.project_id is not None:
+        scopes.append(Scope("project", context.project_id))
+    if context.user_id is not None:
+        scopes.append(Scope("user", context.user_id))
+    if connection.id is not None:
+        scopes.append(Scope("connection", connection.id))
+    return scopes
+
+
+def _worst_case_micros(provider_name: str, request: CompletionRequest) -> int:
+    """What this call could cost if the model emits every token it is allowed to. The
+    reservation is deliberately pessimistic; settle replaces it with the truth."""
+    prompt_tokens = sum(estimate_tokens(m.content) for m in request.messages)
+    return compute_cost(provider_name, request.model, prompt_tokens, request.max_tokens).cost_micros
+
+
+async def _notify_crossings(
+    session: AsyncSession, reservation: Reservation, *, user_id: uuid.UUID | None
+) -> None:
+    """Tell someone the first time a warn budget goes over. A warn budget keeps letting
+    calls through, so without the once-only guard this would notify on every call."""
+    if user_id is None:
+        return
+    for status in reservation.warnings:
+        if not status.just_crossed:
+            continue
+        await notify(
+            session,
+            user_id=user_id,
+            kind="quota.warning",
+            severity="warning",
+            title=f"{status.scope_type.capitalize()} budget exceeded",
+            body=(
+                f"The {status.period} {status.exceeded_dimension} budget is over its "
+                f"limit. Calls still go through — this budget is set to warn, not block."
+            ),
+            ref_kind="quota",
+            ref_id=str(status.scope_id),
+        )
+
+
+def _warning_payload(status: QuotaStatus) -> dict[str, Any]:
+    return {
+        "scope_type": status.scope_type,
+        "scope_id": str(status.scope_id),
+        "period": status.period,
+        "dimension": status.exceeded_dimension,
+        "spent_micros": status.spent_micros,
+        "limit_cost_micros": status.limit_cost_micros,
+        "limit_calls": status.limit_calls,
+        "window_start": status.window_start.isoformat(),
+    }
 
 
 def messages_from_payload(payload: list[dict[str, str]]) -> list[Message]:

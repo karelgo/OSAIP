@@ -27,6 +27,9 @@ HEARTBEAT_SECONDS = 30
 PRUNE_INTERVAL_SECONDS = 600
 EVENT_RETENTION_DAYS = 7
 IDEMPOTENCY_RETENTION_HOURS = 24
+# Well past the longest budget window (a month), so a settled hold can still be joined
+# back to its ledger row while any budget it counted against is live.
+RESERVATION_RETENTION_DAYS = 95
 UPLOAD_RETENTION_HOURS = 24
 
 
@@ -87,11 +90,22 @@ async def prune(engine: AsyncEngine, executor: "JobExecutor") -> None:
                 # Expired cache rows are already unreachable (the mesh filters on
                 # expires_at when it reads); this only reclaims the space.
                 cache = await conn.execute(text("DELETE FROM llm_cache WHERE expires_at <= now()"))
+                # Closed-out budget holds. Kept well past the longest window (a month)
+                # so a usage query can still explain what a budget was spent on.
+                holds = await conn.execute(
+                    text(
+                        "DELETE FROM quota_reservations "
+                        "WHERE settled_micros IS NOT NULL "
+                        "AND ts < now() - make_interval(days => :days)"
+                    ),
+                    {"days": RESERVATION_RETENTION_DAYS},
+                )
             log.info(
-                "prune ok: %s events, %s idempotency keys, %s llm cache entries",
+                "prune ok: %s events, %s idempotency keys, %s llm cache entries, %s quota holds",
                 events.rowcount,
                 keys.rowcount,
                 cache.rowcount,
+                holds.rowcount,
             )
         except Exception:
             log.exception("prune failed")

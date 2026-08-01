@@ -55,3 +55,14 @@ def compute_cost(provider: str, model: str, tokens_in: int, tokens_out: int) -> 
 
 def known_models() -> list[str]:
     return sorted(_price_table()[0])
+
+
+# ~4 characters per token is the usual English/Dutch rule of thumb. It is only ever used
+# to size a quota RESERVATION (which settles to the truth), never to bill or to report —
+# billing always uses the provider's reported usage. tiktoken lands with the LiteLLM
+# adapter, where a provider may omit usage and the ledger flags `tokens_estimated`.
+_CHARS_PER_TOKEN = 4
+
+
+def estimate_tokens(text: str) -> int:
+    return max(1, (len(text) + _CHARS_PER_TOKEN - 1) // _CHARS_PER_TOKEN)

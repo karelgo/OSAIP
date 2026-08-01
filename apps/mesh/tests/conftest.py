@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 from testcontainers.postgres import PostgresContainer
 
-from osaip_api.models import LlmConnection, Project
+from osaip_api.models import LlmConnection, Project, User
 from osaip_mesh.app import create_mesh_app
 from osaip_mesh.config import MeshSettings
 from osaip_shared.ids import new_id
@@ -82,6 +82,23 @@ def make_project(mesh_session: AsyncSession) -> MakeProject:
         mesh_session.add(project)
         await mesh_session.flush()
         return project
+
+    return _make
+
+
+@pytest.fixture
+def make_user(mesh_session: AsyncSession) -> Callable[[], Awaitable[User]]:
+    async def _make() -> User:
+        suffix = uuid.uuid4().hex[:8]
+        user = User(
+            id=new_id(),
+            oidc_sub=f"sub-{suffix}",
+            email=f"{suffix}@example.test",
+            display_name="Mesh tester",
+        )
+        mesh_session.add(user)
+        await mesh_session.commit()
+        return user
 
     return _make
 

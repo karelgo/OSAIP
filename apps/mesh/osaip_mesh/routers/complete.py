@@ -8,7 +8,7 @@ streaming consumer — recorded in docs/plans/phase-3a.md.
 import uuid
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,7 @@ from osaip_mesh.pipeline import (
 )
 from osaip_mesh.providers.base import CompletionRequest, ProviderError
 from osaip_mesh.providers.echo import EchoProvider
+from osaip_mesh.quotas import QuotaExceeded
 
 router = APIRouter(prefix="/v1", tags=["mesh"])
 
@@ -70,6 +71,9 @@ class CompleteOut(BaseModel):
     model_version: str | None
     call_id: str | None
     trace_id: str | None
+    # Budgets set to `warn` let the call through and report here; `block` never gets
+    # this far — it raises a 429 instead.
+    quota_warnings: list[dict[str, Any]] = []
 
 
 async def _load_connection(session: AsyncSession, connection_id: uuid.UUID) -> LlmConnection:
@@ -124,7 +128,9 @@ def _build_provider(connection: LlmConnection, secret: str | None) -> Any:
 
 
 @router.post("/complete", response_model=CompleteOut)
-async def complete(body: CompleteIn, request: Request, session: DbSession) -> dict[str, Any]:
+async def complete(
+    body: CompleteIn, request: Request, response: Response, session: DbSession
+) -> dict[str, Any]:
     connection = await _load_connection(session, body.connection_id)
     if connection.allowed_models and body.model not in connection.allowed_models:
         raise Problem(
@@ -169,6 +175,30 @@ async def complete(body: CompleteIn, request: Request, session: DbSession) -> di
             request=completion,
             context=context,
         )
+    except QuotaExceeded as exc:
+        status = exc.status
+        # 429 like a provider rate-limit, but a DIFFERENT slug: being out of budget is
+        # not something a retry fixes, and callers must be able to tell them apart.
+        raise Problem(
+            429,
+            title="Quota exceeded",
+            detail=(
+                f"The {status.scope_type} {status.period} budget for "
+                f"{status.exceeded_dimension} is exhausted."
+            ),
+            hint="Raise the budget in project settings, or wait for the window to reset.",
+            slug="quota-exceeded",
+            extra={
+                "scope_type": status.scope_type,
+                "scope_id": str(status.scope_id),
+                "period": status.period,
+                "window_start": status.window_start.isoformat(),
+                "dimension": status.exceeded_dimension,
+                "spent_micros": status.spent_micros,
+                "limit_cost_micros": status.limit_cost_micros,
+                "limit_calls": status.limit_calls,
+            },
+        ) from exc
     except ProviderError as exc:
         raise Problem(
             502,
@@ -178,6 +208,11 @@ async def complete(body: CompleteIn, request: Request, session: DbSession) -> di
             slug="provider-rate-limited" if exc.retryable else "provider-failed",
         ) from exc
 
+    if outcome.quota_warnings:
+        # A header too, so a proxy or a non-JSON-reading caller still sees it.
+        response.headers["X-OSAIP-Quota-Warning"] = ", ".join(
+            f"{w['scope_type']}:{w['dimension']}" for w in outcome.quota_warnings
+        )
     return {
         "content": outcome.content,
         "tokens_in": outcome.tokens_in,
@@ -191,4 +226,5 @@ async def complete(body: CompleteIn, request: Request, session: DbSession) -> di
         "model_version": outcome.model_version,
         "call_id": str(outcome.call_id) if outcome.call_id else None,
         "trace_id": str(outcome.trace_id) if outcome.trace_id else None,
+        "quota_warnings": outcome.quota_warnings,
     }
