@@ -65,16 +65,22 @@ export function UsageTab({ projectKey }: { projectKey: string }) {
   const [groupBy, setGroupBy] = useState<Grouping>("day");
   const [days, setDays] = useState(30);
 
-  // Memoised, and quantised to the minute. Computing `new Date()` during render put a
-  // fresh timestamp in the query key on every pass, so react-query refetched, which
-  // re-rendered, which changed the key again — an infinite request loop against
-  // /usage. Caught by e2e; it would have hammered the API in production.
+  // Memoised and quantised to the minute, for a stable query key: computing
+  // `new Date()` during render put a fresh timestamp in the key on every pass, so
+  // react-query refetched, which re-rendered, which changed the key again — an
+  // infinite request loop against /usage.
+  //
+  // `to` rounds UP to the END of the current minute. Rounding down would put every
+  // call made in the current minute outside the half-open [from, to) window, so a
+  // user who just ran something would see an empty panel for up to a minute and
+  // conclude the call was not recorded.
   const { from, to } = useMemo(() => {
-    const now = new Date();
-    now.setSeconds(0, 0);
+    const minute = new Date();
+    minute.setSeconds(0, 0);
+    const end = minute.getTime() + 60_000;
     return {
-      to: now.toISOString(),
-      from: new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString(),
+      to: new Date(end).toISOString(),
+      from: new Date(end - days * 24 * 60 * 60 * 1000).toISOString(),
     };
   }, [days]);
 
