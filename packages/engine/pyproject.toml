@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "OSAIP engine: DuckDB adapters, storage interface, connection checks"
 requires-python = ">=3.12"
 dependencies = [
+    # §5d: `untrusted_block()` is the only sanctioned way to put a dataset cell in a
+    # prompt, so the LLM compiler needs it. Pure-python, no extras.
+    "osaip-guardrails",
     "asyncpg>=0.30",
     # Exact pin — extension ABI/inference/profile stability (ADR-0006 §3)
     "duckdb==1.5.5",
@@ -15,6 +18,9 @@ dependencies = [
     "ibis-framework[duckdb]>=12,<13",
     "sqlglot>=30,<31",
 ]
+
+[tool.uv.sources]
+osaip-guardrails = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

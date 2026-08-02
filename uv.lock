@@ -1879,6 +1879,7 @@ dependencies = [
     { name = "boto3" },
     { name = "duckdb" },
     { name = "ibis-framework", extra = ["duckdb"] },
+    { name = "osaip-guardrails" },
     { name = "pyarrow" },
     { name = "sqlglot" },
 ]
@@ -1890,6 +1891,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.38" },
     { name = "duckdb", specifier = "==1.5.5" },
     { name = "ibis-framework", extras = ["duckdb"], specifier = ">=12,<13" },
+    { name = "osaip-guardrails", editable = "packages/guardrails" },
     { name = "pyarrow", specifier = ">=20.0" },
     { name = "sqlglot", specifier = ">=30,<31" },
 ]
