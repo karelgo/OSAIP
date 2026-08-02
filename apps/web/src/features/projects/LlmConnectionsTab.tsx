@@ -580,7 +580,8 @@ function QuotaSection({
   const create = useMutation({
     mutationFn: (body: {
       period: "day" | "month";
-      limit_cost_micros: number;
+      limit_cost_micros?: number;
+      limit_calls?: number;
       action: "warn" | "block";
     }) =>
       createQuota({ path: { key: projectKey }, body, throwOnError: true }),
@@ -681,13 +682,15 @@ function AddQuotaForm({
   onCancel: () => void;
   onSubmit: (values: {
     period: "day" | "month";
-    limit_cost_micros: number;
+    limit_cost_micros?: number;
+    limit_calls?: number;
     action: "warn" | "block";
   }) => void;
   pending: boolean;
 }) {
   const [period, setPeriod] = useState<"day" | "month">("month");
   const [euros, setEuros] = useState("10");
+  const [calls, setCalls] = useState("");
   const [action, setAction] = useState<"warn" | "block">("block");
 
   return (
@@ -696,8 +699,13 @@ function AddQuotaForm({
       onSubmit={(event) => {
         event.preventDefault();
         // Euros in the UI, integer micros on the wire — money never becomes a float.
-        const micros = Math.round(Number(euros) * 1_000_000);
-        onSubmit({ period, limit_cost_micros: micros, action });
+        // Either limit alone is a valid budget; the server rejects having neither.
+        onSubmit({
+          period,
+          ...(euros === "" ? {} : { limit_cost_micros: Math.round(Number(euros) * 1_000_000) }),
+          ...(calls === "" ? {} : { limit_calls: Number(calls) }),
+          action,
+        });
       }}
     >
       <Field label="Period" className="w-32">
@@ -717,6 +725,15 @@ function AddQuotaForm({
           value={euros}
           onChange={(e) => setEuros(e.target.value)}
           data-testid="quota-eur"
+        />
+      </Field>
+      <Field label="Call limit" className="w-32" hint="Optional">
+        <Input
+          type="number"
+          min={0}
+          value={calls}
+          onChange={(e) => setCalls(e.target.value)}
+          data-testid="quota-calls"
         />
       </Field>
       <Field label="When exceeded" className="w-40">

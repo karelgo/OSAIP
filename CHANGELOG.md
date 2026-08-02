@@ -3,6 +3,56 @@
 All notable changes to OSAIP. Format loosely follows Keep a Changelog; the project is
 pre-1.0, so minor versions may break.
 
+## [0.4.0] — Phase 3a · LLM Mesh foundation (2026-08-02)
+
+The gateway every model call passes through (spec §5b; decisions in ADR-0008/0009).
+Phase 3 was split after a review returned 24 blockers: 3a is the foundation, 3b adds
+LLM recipes and Prompt Studio.
+
+### Added
+- **`apps/mesh`**: internal-only service (service token, no published port) owning the
+  call ORDER — CP-11 residency gate → guardrails `pre` (redact) → quota reserve →
+  cache → provider → guardrails `post` → settle. Redaction runs BEFORE the cache and
+  the provider; the literal §5b order would have defeated its own acceptance criterion
+  (ADR-0008 §1).
+- **Usage ledger** (§4) with full attribution — job/step/row, trace/span,
+  provider/model/model_version, tokens, integer cost micros + currency, latency,
+  cache_hit, status — plus traces/spans the P6 Trace Explorer will read.
+- **Audit storage** per connection: `redacted` (default) leaves no raw copy, `full`
+  keeps both, `off` stores no text but still ledgers the call.
+- **Budgets** by reserve/settle: a committed hold is visible to concurrent callers, so
+  parallel calls cannot collectively overshoot; stale holds are ignored on read.
+  `block` → 429 `quota-exceeded`, distinct from a provider rate-limit.
+- **`packages/guardrails`** (dependency-free): BSN 11-proef, IBAN mod-97, email, phone,
+  including the grouped forms Dutch case files use. Events record counts, never values.
+  The PII baseline cannot be configured away (BIO2 8.12). §5d `untrusted_block()`.
+  Dutch NER via Presidio is opt-in and operator-installed.
+- **CP-11 sovereignty gate** at the choke point: `bsn`/`bijzonder` may only reach a
+  `local` connection; an undeclared classification fails closed. A refusal is a 403
+  that says what to change, recorded in `guardrail_events` AND the chained audit.
+  Residency is operator-asserted metadata, stated as such on every read.
+- **Providers**: built-in `echo` (deterministic, free, refuses non-local residency) and
+  a LiteLLM adapter (openai-compatible/anthropic/ollama) wrapped behind our own
+  protocol, SSRF-guarded per call, with provider errors sanitised so neither the API
+  key nor the prompt escapes.
+- **API**: LLM connections (write-only keys, mandatory legal basis + purpose codes),
+  quotas, usage rollups, append-only prompt versions, guardrail policies with their
+  effective settings.
+- **Web**: an LLM tab (connections + budgets) and a Usage panel, both deep-linkable.
+
+### Fixed
+- `problem_response` could not serialise a pydantic validation error, so any endpoint
+  with a request-model validator returned 500 instead of 422 — latent API-wide.
+- `secrets.project_id` was NOT NULL, which made a global LLM connection unable to hold
+  a credential at all (migration 0006).
+- Quota checks scanned the whole ledger while holding an advisory lock (migration
+  0005 adds the scope indexes).
+
+### Security
+- CI grep-gate: no provider SDK may be imported outside `apps/mesh`.
+- `presidio-anonymizer` was removed after the dependency audit showed its
+  `cryptography <44.1` cap pulled in four known CVEs; it was never imported.
+
 ## [0.3.0] — Phase 2 · Flow & recipes (2026-07-23)
 
 The transformation layer, and the canonical inspector + run-drawer patterns every

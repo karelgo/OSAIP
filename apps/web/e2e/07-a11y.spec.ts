@@ -33,13 +33,18 @@ test("login page has no serious/critical violations", async ({ page }, testInfo)
 });
 
 test("authed surfaces have no serious/critical violations", async ({ page }, testInfo) => {
-  test.setTimeout(120_000); // five surfaces behind one Keycloak login
+  test.setTimeout(180_000); // seven surfaces behind one Keycloak login
   await login(page, "admin@osaip.dev");
 
   const surfaces: Array<{ path: string; readyTestId: string; slug: string }> = [
     { path: "/", readyTestId: "projects-table", slug: "projects-home" },
     { path: "/p/demo", readyTestId: "project-home", slug: "project-home" },
     { path: "/p/demo/settings", readyTestId: "project-settings", slug: "project-settings" },
+    // Phase 3a surfaces: the LLM tab carries a form with hints and badges, and Usage
+    // carries progressbars and a numeric table — both easy places to lose contrast or
+    // labels without noticing.
+    { path: "/p/demo/settings?tab=llm", readyTestId: "llm-connections-tab", slug: "settings-llm" },
+    { path: "/p/demo/settings?tab=usage", readyTestId: "usage-panel", slug: "settings-usage" },
     { path: "/hub", readyTestId: "hub-page", slug: "hub" },
     { path: "/p/demo/agents", readyTestId: "stub-page", slug: "stub-agents" },
   ];

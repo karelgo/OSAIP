@@ -132,3 +132,93 @@ usage · 4 guardrails + §5d + CP-11 · 5 LiteLLM provider + OpenAI-compatible s
 `make ci` green incl. e2e 16-17, **hermetic**; §6.7 on both new screens; the five 3a
 acceptance clauses asserted by named tests; grep-gate proves no provider SDK outside
 `apps/mesh`; summary + stop (§9.4).
+
+---
+
+# Phase 3a summary (completed 2026-08-02)
+
+## What shipped
+`apps/mesh` — the gateway every model call passes through (§5b), reachable only by
+service token and never published to the browser. The pipeline owns the ORDER:
+CP-11 residency gate → guardrails `pre` (redact) → quota reserve → cache (on the
+REDACTED payload) → provider → guardrails `post` → settle (ledger + audit + span).
+
+- **Ledger** (§4): every call recorded with full attribution — job/step/row, trace and
+  span, provider/model/model_version, tokens, integer cost micros + currency, latency,
+  cache_hit, status. Ledger rows are plain inserts outside the audit chain's advisory
+  lock; only policy-relevant events (a residency block) go into the hash-chained audit.
+- **Audit storage**: `redacted` (default) keeps no raw copy; `full` keeps both and only
+  where redaction changed something; `off` stores no text but still ledgers the call.
+- **Budgets** by reserve/settle, not check-then-call. A committed hold is visible to
+  concurrent callers, so N parallel calls cannot collectively overshoot; an abandoned
+  hold is ignored on read after 15 minutes so a crashed process costs minutes of
+  headroom, not a month. block → 429 `quota-exceeded`, deliberately distinct from a
+  provider rate-limit.
+- **Guardrails** (`packages/guardrails`, dependency-free): BSN 11-proef, IBAN mod-97,
+  email, phone — checksum-verified, and matched in the groupings Dutch case files
+  actually use. Events record counts, never values. The baseline is not configurable
+  away (BIO2 8.12). §5d `untrusted_block()` is the only sanctioned way to interpolate
+  untrusted content. Presidio NL is opt-in and operator-installed (ADR-0009).
+- **Providers**: `echo` (deterministic, free, refuses non-local residency) and the
+  LiteLLM adapter covering openai-compatible / anthropic / ollama, wrapped behind our
+  own protocol, SSRF-guarded per call, and error-sanitised so no key or prompt escapes.
+- **API + web**: connections (write-only keys), quotas, usage rollups, prompts
+  (append-only versions), guardrail policies; an LLM tab and a Usage panel.
+
+## Acceptance
+1. echo + an OpenAI-compatible stub share one code path — asserted against a real
+   socket, not a mocked SDK.
+2. The ledger shows tokens + cost + model/provider/version per call. ✅
+3. A low quota blocks with a clear error (e2e 17). ✅
+4. A BSN-bearing prompt is stored redacted and the raw never persists — proven by
+   inspecting what the provider received over the wire. ✅
+5. `bsn` → `external` is hard-blocked with a guardrail event AND a chained audit
+   entry. ✅
+
+## Deviations from the plan, and why
+- **Pipeline order** deviates from §5b's literal text: redaction runs before cache and
+  provider. The literal order defeats its own acceptance criterion (ADR-0008 §1).
+- **`nl_core_news_sm` is CC BY-SA 4.0, not MIT** as this plan first recorded. The §3.1
+  gate caught it; OSAIP does not redistribute the model (ADR-0009). CC BY-SA was NOT
+  added to the allowlist — the artifact is excluded by name, so baking it into a
+  shipped image still fails.
+- **tiktoken** is used for estimates as planned, but the characters-per-token fallback
+  is retained: tiktoken fetches its BPE file on first use, which an air-gapped install
+  cannot do.
+- **`/v1/stream`** remains deferred (3b/P4) with its post-guardrail design.
+
+## Defects found and fixed during the phase
+A five-lens adversarial review raised 44 findings; 10 were adversarially verified and 6
+were real, all fixed with named regression tests: a post-guardrail rejection that
+skipped the ledger and stranded a quota hold; a BSN regex that missed the standard
+Dutch separator format; a check-then-insert race on `traces`; a quota lookup that
+silently dropped one of two budgets on a scope; and missing indexes that made every
+scoped quota check scan the ledger while holding an advisory lock.
+
+Found by tests rather than review: a keyless connection reported as a RETRYABLE
+outage; LiteLLM's synthesised zero `usage` recorded as an exact measurement; a
+`problem_response` that could not serialise a validation error (500 instead of 422,
+latent API-wide); `secrets.project_id` NOT NULL making a global connection unable to
+hold a key; a quotas API requiring a UUID the API never hands out; and a Usage panel
+that rebuilt its query key every render, hammering `/usage` in a loop.
+
+## New deps (§3.1)
+litellm==1.95.0 MIT (pinned exact, wrapped, imported only in apps/mesh — CI grep-gated)
+· tiktoken MIT (estimates only) · presidio-analyzer==2.2.362 MIT as an OPTIONAL extra
+· spacy MIT. presidio-anonymizer was added then removed: unused, and its
+`cryptography <44.1` cap pulled in four CVEs.
+
+## Migrations
+0004 (mesh tables) · 0005 (quota-scope indexes) · 0006 (platform-level secrets).
+
+## Slices
+0 plan+ADR-0008 · 1 migration 0004+mesh skeleton+echo+cost+SSRF+grep-gate · 2 ledger+
+traces/spans+audit storage+cache · 3 quotas reserve/settle+usage rollup · 4 guardrails+
+§5d+CP-11 (+4b Presidio/ADR-0009) · 5 LiteLLM+OpenAI stub · 6 API surface · 7 web ·
+8 e2e 16/17+seed v3+docs+summary.
+
+## Carried into 3b
+LLM recipes in the Flow, Prompt Studio, promote-to-recipe, the spec §7 Phase 3 AC e2e,
+`/v1/stream`, hybrid `/search` embeddings, SIEM/CEF export. Also: 30 of the review's 44
+findings were never verified (the workflow capped verification at the 10 most severe and
+logged the rest) — they are unexamined, not cleared.

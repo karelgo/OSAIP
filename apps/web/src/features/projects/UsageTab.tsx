@@ -20,7 +20,7 @@ import {
 import { getUsageOptions, listQuotasOptions } from "@osaip/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Info, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NativeSelect } from "../../lib/NativeSelect";
 import { formatEur } from "./LlmConnectionsTab";
 
@@ -65,12 +65,23 @@ export function UsageTab({ projectKey }: { projectKey: string }) {
   const [groupBy, setGroupBy] = useState<Grouping>("day");
   const [days, setDays] = useState(30);
 
-  const to = new Date();
-  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+  // Memoised, and quantised to the minute. Computing `new Date()` during render put a
+  // fresh timestamp in the query key on every pass, so react-query refetched, which
+  // re-rendered, which changed the key again — an infinite request loop against
+  // /usage. Caught by e2e; it would have hammered the API in production.
+  const { from, to } = useMemo(() => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    return {
+      to: now.toISOString(),
+      from: new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString(),
+    };
+  }, [days]);
+
   const usage = useQuery(
     getUsageOptions({
       path: { key: projectKey },
-      query: { group_by: groupBy, from: from.toISOString(), to: to.toISOString() },
+      query: { group_by: groupBy, from, to },
     }),
   );
   const quotas = useQuery(listQuotasOptions({ path: { key: projectKey } }));
@@ -104,7 +115,7 @@ export function UsageTab({ projectKey }: { projectKey: string }) {
   const quotaItems = ((quotas.data as { items?: Quota[] } | undefined)?.items ?? []) as Quota[];
 
   return (
-    <div className="mt-6" data-testid="usage-tab">
+    <div className="mt-6" data-testid="usage-panel">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-sm font-medium">Model usage</h2>

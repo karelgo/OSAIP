@@ -24,9 +24,13 @@ from osaip_api.db import make_engine, make_sessionmaker
 from osaip_api.models import (
     Dataset,
     DatasetVersion,
+    GuardrailPolicy,
+    LlmConnection,
     Notification,
     Project,
     ProjectMember,
+    Prompt,
+    Quota,
     User,
 )
 from osaip_api.object_refs import upsert_object_ref
@@ -420,7 +424,129 @@ async def seed(session: AsyncSession, settings: Settings | None = None) -> None:
     await _ensure_sales_dataset(session, settings, project, admin)
     await _ensure_enriched_recipe(session, settings, project, admin)
     await _ensure_demo_src(settings)
+    await _ensure_llm(session, project, admin)
     log.info("seed complete (idempotent)")
+
+
+async def _ensure_llm(session: AsyncSession, project: Project, admin: User) -> None:
+    """Seed v3: an echo connection with a budget and the baseline guardrail policy.
+
+    §10 makes budgets mandatory from Phase 3, so the seed ships one rather than leaving
+    a fresh install with unbounded model spend — the default a demo teaches is the
+    default people copy.
+
+    Echo is deliberately the only seeded provider: it needs no credentials, never leaves
+    the machine, and costs nothing, so `make seed` cannot quietly start billing anyone.
+    """
+    policy = (
+        await session.execute(
+            select(GuardrailPolicy).where(
+                GuardrailPolicy.project_id.is_(None), GuardrailPolicy.name == "baseline"
+            )
+        )
+    ).scalar_one_or_none()
+    if policy is None:
+        policy = GuardrailPolicy(
+            id=new_id(),
+            project_id=None,
+            name="baseline",
+            # Empty on purpose: PII redaction is not configurable and applies anyway
+            # (BIO2 8.12). This exists so the UI has something to point at.
+            stages={},
+        )
+        session.add(policy)
+        await session.flush()
+
+    connection = (
+        await session.execute(
+            select(LlmConnection).where(
+                LlmConnection.project_id == project.id, LlmConnection.name == "echo-local"
+            )
+        )
+    ).scalar_one_or_none()
+    if connection is None:
+        connection = LlmConnection(
+            id=new_id(),
+            scope="project",
+            project_id=project.id,
+            name="echo-local",
+            provider="echo",
+            base_config={},
+            allowed_models=["echo-1"],
+            data_residency="local",
+            audit_mode="redacted",
+            cache_ttl_s=0,
+            guardrail_policy_id=policy.id,
+            legal_basis="Art 6(1)(e) AVG — public task (demo)",
+            purpose_codes=["demo.internal"],
+            status="active",
+        )
+        session.add(connection)
+        await session.flush()
+        await upsert_object_ref(
+            session,
+            kind="llm_connection",
+            project_id=project.id,
+            name=connection.name,
+            description="echo · local (built-in mock)",
+            url_path=f"/p/{project.key}/settings?tab=llm",
+        )
+        await write_audit(
+            session,
+            actor_id=admin.id,
+            project_id=project.id,
+            action="llm_connection.created",
+            object_kind="llm_connection",
+            object_id=str(connection.id),
+            details={"name": connection.name, "provider": "echo", "data_residency": "local"},
+        )
+
+    existing_quota = (
+        await session.execute(
+            select(Quota).where(
+                Quota.scope_type == "project",
+                Quota.scope_id == project.id,
+                Quota.period == "month",
+            )
+        )
+    ).scalar_one_or_none()
+    if existing_quota is None:
+        session.add(
+            Quota(
+                id=new_id(),
+                scope_type="project",
+                scope_id=project.id,
+                period="month",
+                limit_cost_micros=5_000_000,  # EUR 5.00
+                action="block",
+            )
+        )
+
+    prompt = (
+        await session.execute(
+            select(Prompt).where(Prompt.project_id == project.id, Prompt.name == "classify-order")
+        )
+    ).scalar_one_or_none()
+    if prompt is None:
+        session.add(
+            Prompt(
+                id=new_id(),
+                project_id=project.id,
+                name="classify-order",
+                version=1,
+                # No <untrusted> markup: the platform wraps the value it substitutes
+                # (§5d). A template that wrote the delimiters itself would be rejected
+                # by the API, and seeding one would teach the wrong pattern.
+                template=(
+                    "Classify the order below as `standard` or `priority`. "
+                    "Answer with one word.\n\n{order}"
+                ),
+                variables={"order": "the order row, as text"},
+                model_defaults={"max_tokens": 8, "temperature": 0},
+                tags=["demo"],
+                created_by=admin.id,
+            )
+        )
 
 
 async def run() -> None:
