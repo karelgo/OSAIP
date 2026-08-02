@@ -235,3 +235,67 @@ def _coerce(plan: LlmPlan, content: str) -> str:
         except json.JSONDecodeError:
             return content
     return content
+
+
+# ── storage-backed checkpoint ───────────────────────────────────────────────────
+
+
+def checkpoint_prefix(project_key: str, job_id: uuid.UUID, ordinal: int) -> str:
+    """Deliberately under the JOB's artifact prefix, not the dataset version prefix.
+
+    The build clears the version prefix before writing ("idempotent overwrite: clear any
+    partial artifact from a prior attempt"), and a checkpoint stored there would be
+    deleted by the very retry it exists to make cheap. Keyed on job+step because both
+    survive a requeue — which is the case that would otherwise re-bill the work.
+    """
+    return f"projects/{project_key}/artifacts/jobs/{job_id}/step-{ordinal}/llm-ckpt"
+
+
+def make_checkpoint_io(
+    storage: Any, prefix: str
+) -> tuple[Callable[[], Awaitable[dict[int, RowResult]]], CheckpointSave]:
+    """Load/save a step's completed rows as JSONL batches under `prefix`."""
+
+    async def load() -> dict[int, RowResult]:
+        done: dict[int, RowResult] = {}
+        for key, _meta in storage.list_keys(f"{prefix}/"):
+            try:
+                raw = storage.get_bytes(key)
+            except Exception:  # a half-written batch is a miss, never a crash
+                log.warning("unreadable llm checkpoint batch: %s", key)
+                continue
+            for line in raw.decode("utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    # A truncated final line means the process died mid-write; the rows
+                    # before it are still good, and the rest get recomputed.
+                    log.warning("truncated llm checkpoint line in %s", key)
+                    continue
+                done[int(record["_osaip_row"])] = RowResult(
+                    index=int(record["_osaip_row"]),
+                    output=record.get("output"),
+                    error=record.get("error"),
+                    cost_micros=int(record.get("cost_micros") or 0),
+                    tokens_in=int(record.get("tokens_in") or 0),
+                    tokens_out=int(record.get("tokens_out") or 0),
+                )
+        return done
+
+    async def save(batch: Sequence[RowResult]) -> None:
+        if not batch:
+            return
+        # Named for the FIRST row index, so a re-run of the same batch overwrites rather
+        # than duplicating, and the set of files is deterministic.
+        first = min(result.index for result in batch)
+        body = "\n".join(json.dumps(result.as_record(), sort_keys=True) for result in batch)
+        storage.put_bytes(body.encode("utf-8"), f"{prefix}/batch-{first:09d}.jsonl")
+
+    return load, save
+
+
+def clear_checkpoint(storage: Any, prefix: str) -> None:
+    """Called once the version is committed — the rows are durable in the dataset now."""
+    storage.delete_prefix(f"{prefix}/")

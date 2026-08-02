@@ -285,3 +285,138 @@ async def test_concurrency_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
         **_ids(),
     )
     assert live["peak"] <= 3
+
+
+# ── storage-backed checkpoint ───────────────────────────────────────────────────
+
+
+class _FakeStorage:
+    """Just enough of the storage interface, so the checkpoint's failure modes can be
+    driven directly rather than inferred."""
+
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+
+    def put_bytes(self, data: bytes, key: str) -> None:
+        self.objects[key] = data
+
+    def get_bytes(self, key: str) -> bytes:
+        return self.objects[key]
+
+    def list_keys(self, prefix: str) -> Any:
+        return [(key, None) for key in sorted(self.objects) if key.startswith(prefix)]
+
+    def delete_prefix(self, prefix: str) -> int:
+        gone = [key for key in self.objects if key.startswith(prefix)]
+        for key in gone:
+            del self.objects[key]
+        return len(gone)
+
+
+def test_the_checkpoint_lives_outside_the_dataset_version_prefix() -> None:
+    """The build clears the version prefix before writing, so a checkpoint stored there
+    would be deleted by the very retry it exists to make cheap."""
+    job = uuid.uuid4()
+    prefix = llm_step.checkpoint_prefix("demo", job, 2)
+    assert prefix.startswith("projects/demo/artifacts/jobs/")
+    assert "/datasets/" not in prefix
+    # Keyed on job AND step, both of which survive a requeue.
+    assert str(job) in prefix and "step-2" in prefix
+
+
+async def test_checkpoint_round_trips() -> None:
+    storage = _FakeStorage()
+    load, save = llm_step.make_checkpoint_io(storage, "ckpt")
+
+    await save([RowResult(index=0, output="a", cost_micros=5), RowResult(index=1, error="boom")])
+    done = await load()
+
+    assert set(done) == {0, 1}
+    assert done[0].output == "a" and done[0].cost_micros == 5
+    assert done[1].error == "boom" and done[1].output is None
+
+
+async def test_rewriting_a_batch_overwrites_rather_than_duplicating() -> None:
+    """Batch files are named for their first row index, so a re-run is idempotent."""
+    storage = _FakeStorage()
+    load, save = llm_step.make_checkpoint_io(storage, "ckpt")
+
+    await save([RowResult(index=0, output="first")])
+    await save([RowResult(index=0, output="second")])
+
+    assert len(storage.objects) == 1
+    assert (await load())[0].output == "second"
+
+
+async def test_a_truncated_batch_loses_only_its_last_line() -> None:
+    """A process dying mid-write must cost the rows after the tear, not the whole file."""
+    storage = _FakeStorage()
+    load, save = llm_step.make_checkpoint_io(storage, "ckpt")
+    await save([RowResult(index=i, output=f"r{i}") for i in range(3)])
+
+    key = next(iter(storage.objects))
+    storage.objects[key] = storage.objects[key][:-8]  # tear the tail
+
+    done = await load()
+    assert 0 in done and 1 in done  # the intact rows survived
+    assert len(done) < 3
+
+
+async def test_an_unreadable_batch_is_a_miss_not_a_crash() -> None:
+    storage = _FakeStorage()
+    load, save = llm_step.make_checkpoint_io(storage, "ckpt")
+    await save([RowResult(index=0, output="a")])
+
+    def _boom(key: str) -> bytes:
+        raise OSError("object storage said no")
+
+    storage.get_bytes = _boom  # type: ignore[method-assign]
+    assert await load() == {}  # recompute rather than fail the build
+
+
+async def test_clearing_the_checkpoint_removes_only_its_own_prefix() -> None:
+    storage = _FakeStorage()
+    _load, save = llm_step.make_checkpoint_io(storage, "ckpt")
+    await save([RowResult(index=0, output="a")])
+    storage.put_bytes(b"keep", "somewhere/else.parquet")
+
+    llm_step.clear_checkpoint(storage, "ckpt")
+    assert list(storage.objects) == ["somewhere/else.parquet"]
+
+
+async def test_a_resumed_run_reads_its_own_checkpoint(fake_mesh: list[dict[str, Any]]) -> None:
+    """The whole point, end to end: a second attempt only pays for what is left."""
+    storage = _FakeStorage()
+    load, save = llm_step.make_checkpoint_io(storage, "ckpt")
+
+    async def _cancel_after_two() -> bool:
+        return len(storage.objects) >= 1
+
+    with pytest.raises(StepCancelled):
+        await run_llm_rows(
+            settings=object(),
+            plan=PLAN,
+            rows=ROWS,
+            is_cancelled=_cancel_after_two,
+            load_checkpoint=load,
+            save_checkpoint=save,
+            checkpoint_every=4,
+            **_ids(),
+        )
+    first_attempt = len(fake_mesh)
+    assert first_attempt == 4
+
+    outcome = await run_llm_rows(
+        settings=object(),
+        plan=PLAN,
+        rows=ROWS,
+        is_cancelled=_never_cancelled,
+        load_checkpoint=load,
+        save_checkpoint=save,
+        checkpoint_every=4,
+        **_ids(),
+    )
+    assert outcome.resumed_rows == 4
+    assert outcome.rows == 10
+    # Only the remaining six were paid for a second time.
+    assert len(fake_mesh) == first_attempt + 6
