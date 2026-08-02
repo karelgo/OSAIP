@@ -23,6 +23,8 @@ from osaip_api.routers import (
     events,
     flow,
     health,
+    llm_budgets,
+    llm_connections,
     me,
     notifications,
     projects,
@@ -100,6 +102,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(me.router, prefix="/api/v1")
     app.include_router(projects.router, prefix="/api/v1")
     app.include_router(connections.router, prefix="/api/v1")
+    app.include_router(llm_connections.router, prefix="/api/v1")
+    app.include_router(llm_budgets.router, prefix="/api/v1")
     app.include_router(uploads.router, prefix="/api/v1")
     app.include_router(datasets.router, prefix="/api/v1")
     app.include_router(recipes.router, prefix="/api/v1")

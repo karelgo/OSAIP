@@ -27,6 +27,13 @@ class Settings(BaseSettings):
 
     docs_base_url: str = "https://github.com/osaip/osaip/blob/main/docs"
 
+    # The internal LLM mesh (§5b). The api never calls a provider itself — it calls the
+    # mesh, which owns the residency gate, guardrails, budgets and ledger. The token is
+    # the mesh's only authentication, so the dev default MUST be replaced in production
+    # (docs/deployment-checklist.md).
+    mesh_url: str = "http://localhost:8100"
+    mesh_service_token: str = "dev-mesh-token-not-for-prod"
+
     # Object storage (ADR-0006 §2). Host-run tools default to the published dev port;
     # compose overrides the endpoint to seaweedfs:8333 (dual-hostname, like OIDC).
     s3_endpoint: str = "localhost:8333"  # host:port, scheme-less

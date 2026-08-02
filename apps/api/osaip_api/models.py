@@ -257,13 +257,16 @@ class IdempotencyKey(Base):
 
 class Secret(Base):
     """MultiFernet ciphertext for connection credentials (ADR-0006 §1). Write-only
-    through the API; `key_id` records which key encrypted this value."""
+    through the API; `key_id` records which key encrypted this value.
+
+    `project_id` is NULL for a platform-level secret — the API key of a GLOBAL LLM
+    connection belongs to the operator, not to any one project (migration 0006)."""
 
     __tablename__ = "secrets"
 
     id: Mapped[uuid.UUID] = _uuid_pk()
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)

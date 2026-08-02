@@ -711,6 +711,110 @@ export type JobOut = {
 };
 
 /**
+ * LlmConnectionCreate
+ */
+export type LlmConnectionCreate = {
+    /**
+     * Allowed Models
+     */
+    allowed_models?: Array<string>;
+    /**
+     * Audit Mode
+     */
+    audit_mode?: 'full' | 'redacted' | 'off';
+    /**
+     * Base Config
+     */
+    base_config?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Cache Ttl S
+     */
+    cache_ttl_s?: number;
+    /**
+     * Data Residency
+     */
+    data_residency: 'local' | 'eu' | 'external';
+    /**
+     * Guardrail Policy Id
+     */
+    guardrail_policy_id?: string | null;
+    /**
+     * Legal Basis
+     */
+    legal_basis: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Provider
+     */
+    provider: 'echo' | 'openai' | 'anthropic' | 'ollama';
+    /**
+     * Purpose Codes
+     */
+    purpose_codes: Array<string>;
+    /**
+     * Secret
+     */
+    secret?: string | null;
+};
+
+/**
+ * LlmConnectionUpdate
+ */
+export type LlmConnectionUpdate = {
+    /**
+     * Allowed Models
+     */
+    allowed_models?: Array<string> | null;
+    /**
+     * Audit Mode
+     */
+    audit_mode?: 'full' | 'redacted' | 'off' | null;
+    /**
+     * Base Config
+     */
+    base_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Cache Ttl S
+     */
+    cache_ttl_s?: number | null;
+    /**
+     * Data Residency
+     */
+    data_residency?: 'local' | 'eu' | 'external' | null;
+    /**
+     * Guardrail Policy Id
+     */
+    guardrail_policy_id?: string | null;
+    /**
+     * Legal Basis
+     */
+    legal_basis?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Purpose Codes
+     */
+    purpose_codes?: Array<string> | null;
+    /**
+     * Secret
+     */
+    secret?: string | null;
+    /**
+     * Status
+     */
+    status?: 'active' | 'archived' | null;
+};
+
+/**
  * LogTailOut
  */
 export type LogTailOut = {
@@ -880,6 +984,22 @@ export type NotificationOut = {
 };
 
 /**
+ * PolicyCreate
+ */
+export type PolicyCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Stages
+     */
+    stages?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * PrefsOut
  */
 export type PrefsOut = {
@@ -1006,6 +1126,84 @@ export type ProjectPatch = {
      * Name
      */
     name?: string | null;
+};
+
+/**
+ * PromptUpsert
+ */
+export type PromptUpsert = {
+    /**
+     * Model Defaults
+     */
+    model_defaults?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Tags
+     */
+    tags?: Array<string>;
+    /**
+     * Template
+     */
+    template: string;
+    /**
+     * Variables
+     */
+    variables?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * QuotaCreate
+ */
+export type QuotaCreate = {
+    /**
+     * Action
+     */
+    action?: 'warn' | 'block';
+    /**
+     * Limit Calls
+     */
+    limit_calls?: number | null;
+    /**
+     * Limit Cost Micros
+     */
+    limit_cost_micros?: number | null;
+    /**
+     * Period
+     */
+    period?: 'day' | 'month';
+    /**
+     * Scope Id
+     */
+    scope_id?: string | null;
+    /**
+     * Scope Type
+     */
+    scope_type?: 'project' | 'user' | 'connection' | 'agent';
+};
+
+/**
+ * QuotaUpdate
+ */
+export type QuotaUpdate = {
+    /**
+     * Action
+     */
+    action?: 'warn' | 'block' | null;
+    /**
+     * Limit Calls
+     */
+    limit_calls?: number | null;
+    /**
+     * Limit Cost Micros
+     */
+    limit_cost_micros?: number | null;
 };
 
 /**
@@ -1526,6 +1724,45 @@ export type EventsStreamResponses = {
     200: unknown;
 };
 
+export type ListPoliciesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/guardrail-policies';
+};
+
+export type ListPoliciesResponses = {
+    /**
+     * Response List Policies
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CreatePolicyData = {
+    body: PolicyCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/guardrail-policies';
+};
+
+export type CreatePolicyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreatePolicyError = CreatePolicyErrors[keyof CreatePolicyErrors];
+
+export type CreatePolicyResponses = {
+    /**
+     * Successful Response
+     */
+    201: unknown;
+};
+
 export type HealthzData = {
     body?: never;
     path?: never;
@@ -1545,6 +1782,45 @@ export type HealthzResponses = {
 };
 
 export type HealthzResponse = HealthzResponses[keyof HealthzResponses];
+
+export type ListGlobalConnectionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm-connections';
+};
+
+export type ListGlobalConnectionsResponses = {
+    /**
+     * Response List Global Connections
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CreateGlobalConnectionData = {
+    body: LlmConnectionCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm-connections';
+};
+
+export type CreateGlobalConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateGlobalConnectionError = CreateGlobalConnectionErrors[keyof CreateGlobalConnectionErrors];
+
+export type CreateGlobalConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    201: unknown;
+};
 
 export type GetMeData = {
     body?: never;
@@ -2577,6 +2853,200 @@ export type GetStepLogResponses = {
 
 export type GetStepLogResponse = GetStepLogResponses[keyof GetStepLogResponses];
 
+export type ListProjectConnectionsData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/llm-connections';
+};
+
+export type ListProjectConnectionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListProjectConnectionsError = ListProjectConnectionsErrors[keyof ListProjectConnectionsErrors];
+
+export type ListProjectConnectionsResponses = {
+    /**
+     * Response List Project Connections
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CreateProjectConnectionData = {
+    body: LlmConnectionCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/llm-connections';
+};
+
+export type CreateProjectConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateProjectConnectionError = CreateProjectConnectionErrors[keyof CreateProjectConnectionErrors];
+
+export type CreateProjectConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    201: unknown;
+};
+
+export type ArchiveProjectConnectionData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/llm-connections/{connection_id}';
+};
+
+export type ArchiveProjectConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ArchiveProjectConnectionError = ArchiveProjectConnectionErrors[keyof ArchiveProjectConnectionErrors];
+
+export type ArchiveProjectConnectionResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type ArchiveProjectConnectionResponse = ArchiveProjectConnectionResponses[keyof ArchiveProjectConnectionResponses];
+
+export type GetProjectConnectionData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/llm-connections/{connection_id}';
+};
+
+export type GetProjectConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProjectConnectionError = GetProjectConnectionErrors[keyof GetProjectConnectionErrors];
+
+export type GetProjectConnectionResponses = {
+    /**
+     * Response Get Project Connection
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type UpdateProjectConnectionData = {
+    body: LlmConnectionUpdate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/llm-connections/{connection_id}';
+};
+
+export type UpdateProjectConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateProjectConnectionError = UpdateProjectConnectionErrors[keyof UpdateProjectConnectionErrors];
+
+export type UpdateProjectConnectionResponses = {
+    /**
+     * Response Update Project Connection
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type TestProjectConnectionData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Connection Id
+         */
+        connection_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/llm-connections/{connection_id}/test';
+};
+
+export type TestProjectConnectionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TestProjectConnectionError = TestProjectConnectionErrors[keyof TestProjectConnectionErrors];
+
+export type TestProjectConnectionResponses = {
+    /**
+     * Response Test Project Connection
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type ListMembersData = {
     body?: never;
     path: {
@@ -2670,6 +3140,224 @@ export type RemoveMemberResponses = {
 };
 
 export type RemoveMemberResponse = RemoveMemberResponses[keyof RemoveMemberResponses];
+
+export type ListPromptsData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/prompts';
+};
+
+export type ListPromptsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListPromptsError = ListPromptsErrors[keyof ListPromptsErrors];
+
+export type ListPromptsResponses = {
+    /**
+     * Response List Prompts
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type UpsertPromptData = {
+    body: PromptUpsert;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/prompts';
+};
+
+export type UpsertPromptErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpsertPromptError = UpsertPromptErrors[keyof UpsertPromptErrors];
+
+export type UpsertPromptResponses = {
+    /**
+     * Successful Response
+     */
+    201: unknown;
+};
+
+export type GetPromptVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Name
+         */
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/prompts/{name}';
+};
+
+export type GetPromptVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPromptVersionsError = GetPromptVersionsErrors[keyof GetPromptVersionsErrors];
+
+export type GetPromptVersionsResponses = {
+    /**
+     * Response Get Prompt Versions
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ListQuotasData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/quotas';
+};
+
+export type ListQuotasErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListQuotasError = ListQuotasErrors[keyof ListQuotasErrors];
+
+export type ListQuotasResponses = {
+    /**
+     * Response List Quotas
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type CreateQuotaData = {
+    body: QuotaCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/quotas';
+};
+
+export type CreateQuotaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateQuotaError = CreateQuotaErrors[keyof CreateQuotaErrors];
+
+export type CreateQuotaResponses = {
+    /**
+     * Successful Response
+     */
+    201: unknown;
+};
+
+export type DeleteQuotaData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Quota Id
+         */
+        quota_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/quotas/{quota_id}';
+};
+
+export type DeleteQuotaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteQuotaError = DeleteQuotaErrors[keyof DeleteQuotaErrors];
+
+export type DeleteQuotaResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteQuotaResponse = DeleteQuotaResponses[keyof DeleteQuotaResponses];
+
+export type UpdateQuotaData = {
+    body: QuotaUpdate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Quota Id
+         */
+        quota_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{key}/quotas/{quota_id}';
+};
+
+export type UpdateQuotaErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateQuotaError = UpdateQuotaErrors[keyof UpdateQuotaErrors];
+
+export type UpdateQuotaResponses = {
+    /**
+     * Response Update Quota
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type ListRecipesData = {
     body?: never;
@@ -2905,6 +3593,49 @@ export type CreateUploadResponses = {
 };
 
 export type CreateUploadResponse = CreateUploadResponses[keyof CreateUploadResponses];
+
+export type GetUsageData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+    };
+    query?: {
+        /**
+         * Group By
+         */
+        group_by?: 'day' | 'model' | 'user' | 'provider' | 'purpose';
+        /**
+         * From
+         */
+        from?: string | null;
+        /**
+         * To
+         */
+        to?: string | null;
+    };
+    url: '/api/v1/projects/{key}/usage';
+};
+
+export type GetUsageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetUsageError = GetUsageErrors[keyof GetUsageErrors];
+
+export type GetUsageResponses = {
+    /**
+     * Response Get Usage
+     *
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type ReadyzData = {
     body?: never;

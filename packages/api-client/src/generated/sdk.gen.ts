@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ArchiveConnectionData, ArchiveConnectionErrors, ArchiveConnectionResponses, ArchiveDatasetData, ArchiveDatasetErrors, ArchiveDatasetResponses, ArchiveProjectData, ArchiveProjectErrors, ArchiveProjectResponses, ArchiveRecipeData, ArchiveRecipeErrors, ArchiveRecipeResponses, CallbackData, CallbackErrors, CallbackResponses, CancelJobData, CancelJobErrors, CancelJobResponses, CreateBuildData, CreateBuildErrors, CreateBuildResponses, CreateConnectionData, CreateConnectionErrors, CreateConnectionResponses, CreateDatasetData, CreateDatasetErrors, CreateDatasetResponses, CreateProjectData, CreateProjectErrors, CreateProjectResponses, CreateRecipeData, CreateRecipeErrors, CreateRecipeResponses, CreateUploadData, CreateUploadErrors, CreateUploadResponses, EmitTestEventData, EmitTestEventResponses, EventsStreamData, EventsStreamErrors, EventsStreamResponses, GetConnectionData, GetConnectionErrors, GetConnectionResponses, GetDatasetData, GetDatasetErrors, GetDatasetResponses, GetFlowData, GetFlowErrors, GetFlowResponses, GetJobData, GetJobErrors, GetJobResponses, GetMeData, GetMeResponses, GetProfileData, GetProfileErrors, GetProfileResponses, GetProjectData, GetProjectErrors, GetProjectResponses, GetRecipeData, GetRecipeErrors, GetRecipeResponses, GetStepLogData, GetStepLogErrors, GetStepLogResponses, HealthzData, HealthzResponses, InspectConnectionData, InspectConnectionErrors, InspectConnectionResponses, ListAuditData, ListAuditErrors, ListAuditResponses, ListConnectionsData, ListConnectionsErrors, ListConnectionsResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListJobsData, ListJobsErrors, ListJobsResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListNotificationsData, ListNotificationsErrors, ListNotificationsResponses, ListProjectsData, ListProjectsErrors, ListProjectsResponses, ListRecipesData, ListRecipesErrors, ListRecipesResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, MarkAllReadData, MarkAllReadResponses, MarkReadData, MarkReadErrors, MarkReadResponses, PatchConnectionData, PatchConnectionErrors, PatchConnectionResponses, PatchDatasetData, PatchDatasetErrors, PatchDatasetResponses, PatchPrefsData, PatchPrefsErrors, PatchPrefsResponses, PatchProjectData, PatchProjectErrors, PatchProjectResponses, PatchRecipeData, PatchRecipeErrors, PatchRecipeResponses, PreviewRecipeData, PreviewRecipeErrors, PreviewRecipeResponses, ProjectAuditData, ProjectAuditErrors, ProjectAuditResponses, ReadyzData, ReadyzResponses, RecomputeProfileData, RecomputeProfileErrors, RecomputeProfileResponses, RemoveMemberData, RemoveMemberErrors, RemoveMemberResponses, ReplaceMembersData, ReplaceMembersErrors, ReplaceMembersResponses, SampleDatasetData, SampleDatasetErrors, SampleDatasetResponses, SearchData, SearchErrors, SearchResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses, VerifyAuditChainData, VerifyAuditChainResponses } from './types.gen';
+import type { ArchiveConnectionData, ArchiveConnectionErrors, ArchiveConnectionResponses, ArchiveDatasetData, ArchiveDatasetErrors, ArchiveDatasetResponses, ArchiveProjectConnectionData, ArchiveProjectConnectionErrors, ArchiveProjectConnectionResponses, ArchiveProjectData, ArchiveProjectErrors, ArchiveProjectResponses, ArchiveRecipeData, ArchiveRecipeErrors, ArchiveRecipeResponses, CallbackData, CallbackErrors, CallbackResponses, CancelJobData, CancelJobErrors, CancelJobResponses, CreateBuildData, CreateBuildErrors, CreateBuildResponses, CreateConnectionData, CreateConnectionErrors, CreateConnectionResponses, CreateDatasetData, CreateDatasetErrors, CreateDatasetResponses, CreateGlobalConnectionData, CreateGlobalConnectionErrors, CreateGlobalConnectionResponses, CreatePolicyData, CreatePolicyErrors, CreatePolicyResponses, CreateProjectConnectionData, CreateProjectConnectionErrors, CreateProjectConnectionResponses, CreateProjectData, CreateProjectErrors, CreateProjectResponses, CreateQuotaData, CreateQuotaErrors, CreateQuotaResponses, CreateRecipeData, CreateRecipeErrors, CreateRecipeResponses, CreateUploadData, CreateUploadErrors, CreateUploadResponses, DeleteQuotaData, DeleteQuotaErrors, DeleteQuotaResponses, EmitTestEventData, EmitTestEventResponses, EventsStreamData, EventsStreamErrors, EventsStreamResponses, GetConnectionData, GetConnectionErrors, GetConnectionResponses, GetDatasetData, GetDatasetErrors, GetDatasetResponses, GetFlowData, GetFlowErrors, GetFlowResponses, GetJobData, GetJobErrors, GetJobResponses, GetMeData, GetMeResponses, GetProfileData, GetProfileErrors, GetProfileResponses, GetProjectConnectionData, GetProjectConnectionErrors, GetProjectConnectionResponses, GetProjectData, GetProjectErrors, GetProjectResponses, GetPromptVersionsData, GetPromptVersionsErrors, GetPromptVersionsResponses, GetRecipeData, GetRecipeErrors, GetRecipeResponses, GetStepLogData, GetStepLogErrors, GetStepLogResponses, GetUsageData, GetUsageErrors, GetUsageResponses, HealthzData, HealthzResponses, InspectConnectionData, InspectConnectionErrors, InspectConnectionResponses, ListAuditData, ListAuditErrors, ListAuditResponses, ListConnectionsData, ListConnectionsErrors, ListConnectionsResponses, ListDatasetsData, ListDatasetsErrors, ListDatasetsResponses, ListGlobalConnectionsData, ListGlobalConnectionsResponses, ListJobsData, ListJobsErrors, ListJobsResponses, ListMembersData, ListMembersErrors, ListMembersResponses, ListNotificationsData, ListNotificationsErrors, ListNotificationsResponses, ListPoliciesData, ListPoliciesResponses, ListProjectConnectionsData, ListProjectConnectionsErrors, ListProjectConnectionsResponses, ListProjectsData, ListProjectsErrors, ListProjectsResponses, ListPromptsData, ListPromptsErrors, ListPromptsResponses, ListQuotasData, ListQuotasErrors, ListQuotasResponses, ListRecipesData, ListRecipesErrors, ListRecipesResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, MarkAllReadData, MarkAllReadResponses, MarkReadData, MarkReadErrors, MarkReadResponses, PatchConnectionData, PatchConnectionErrors, PatchConnectionResponses, PatchDatasetData, PatchDatasetErrors, PatchDatasetResponses, PatchPrefsData, PatchPrefsErrors, PatchPrefsResponses, PatchProjectData, PatchProjectErrors, PatchProjectResponses, PatchRecipeData, PatchRecipeErrors, PatchRecipeResponses, PreviewRecipeData, PreviewRecipeErrors, PreviewRecipeResponses, ProjectAuditData, ProjectAuditErrors, ProjectAuditResponses, ReadyzData, ReadyzResponses, RecomputeProfileData, RecomputeProfileErrors, RecomputeProfileResponses, RemoveMemberData, RemoveMemberErrors, RemoveMemberResponses, ReplaceMembersData, ReplaceMembersErrors, ReplaceMembersResponses, SampleDatasetData, SampleDatasetErrors, SampleDatasetResponses, SearchData, SearchErrors, SearchResponses, TestConnectionData, TestConnectionErrors, TestConnectionResponses, TestProjectConnectionData, TestProjectConnectionErrors, TestProjectConnectionResponses, UpdateProjectConnectionData, UpdateProjectConnectionErrors, UpdateProjectConnectionResponses, UpdateQuotaData, UpdateQuotaErrors, UpdateQuotaResponses, UpsertPromptData, UpsertPromptErrors, UpsertPromptResponses, VerifyAuditChainData, VerifyAuditChainResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -56,9 +56,43 @@ export const emitTestEvent = <ThrowOnError extends boolean = false>(options?: Op
 export const eventsStream = <ThrowOnError extends boolean = false>(options?: Options<EventsStreamData, ThrowOnError>): RequestResult<EventsStreamResponses, EventsStreamErrors, ThrowOnError> => (options?.client ?? client).get<EventsStreamResponses, EventsStreamErrors, ThrowOnError>({ url: '/api/v1/events', ...options });
 
 /**
+ * List Policies
+ */
+export const listPolicies = <ThrowOnError extends boolean = false>(options?: Options<ListPoliciesData, ThrowOnError>): RequestResult<ListPoliciesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListPoliciesResponses, unknown, ThrowOnError>({ url: '/api/v1/guardrail-policies', ...options });
+
+/**
+ * Create Policy
+ */
+export const createPolicy = <ThrowOnError extends boolean = false>(options: Options<CreatePolicyData, ThrowOnError>): RequestResult<CreatePolicyResponses, CreatePolicyErrors, ThrowOnError> => (options.client ?? client).post<CreatePolicyResponses, CreatePolicyErrors, ThrowOnError>({
+    url: '/api/v1/guardrail-policies',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Healthz
  */
 export const healthz = <ThrowOnError extends boolean = false>(options?: Options<HealthzData, ThrowOnError>): RequestResult<HealthzResponses, unknown, ThrowOnError> => (options?.client ?? client).get<HealthzResponses, unknown, ThrowOnError>({ url: '/api/v1/healthz', ...options });
+
+/**
+ * List Global Connections
+ */
+export const listGlobalConnections = <ThrowOnError extends boolean = false>(options?: Options<ListGlobalConnectionsData, ThrowOnError>): RequestResult<ListGlobalConnectionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListGlobalConnectionsResponses, unknown, ThrowOnError>({ url: '/api/v1/llm-connections', ...options });
+
+/**
+ * Create Global Connection
+ */
+export const createGlobalConnection = <ThrowOnError extends boolean = false>(options: Options<CreateGlobalConnectionData, ThrowOnError>): RequestResult<CreateGlobalConnectionResponses, CreateGlobalConnectionErrors, ThrowOnError> => (options.client ?? client).post<CreateGlobalConnectionResponses, CreateGlobalConnectionErrors, ThrowOnError>({
+    url: '/api/v1/llm-connections',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Get Me
@@ -290,6 +324,56 @@ export const cancelJob = <ThrowOnError extends boolean = false>(options: Options
 export const getStepLog = <ThrowOnError extends boolean = false>(options: Options<GetStepLogData, ThrowOnError>): RequestResult<GetStepLogResponses, GetStepLogErrors, ThrowOnError> => (options.client ?? client).get<GetStepLogResponses, GetStepLogErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/jobs/{job_id}/steps/{ordinal}/log', ...options });
 
 /**
+ * List Project Connections
+ */
+export const listProjectConnections = <ThrowOnError extends boolean = false>(options: Options<ListProjectConnectionsData, ThrowOnError>): RequestResult<ListProjectConnectionsResponses, ListProjectConnectionsErrors, ThrowOnError> => (options.client ?? client).get<ListProjectConnectionsResponses, ListProjectConnectionsErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/llm-connections', ...options });
+
+/**
+ * Create Project Connection
+ */
+export const createProjectConnection = <ThrowOnError extends boolean = false>(options: Options<CreateProjectConnectionData, ThrowOnError>): RequestResult<CreateProjectConnectionResponses, CreateProjectConnectionErrors, ThrowOnError> => (options.client ?? client).post<CreateProjectConnectionResponses, CreateProjectConnectionErrors, ThrowOnError>({
+    url: '/api/v1/projects/{key}/llm-connections',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Archive Project Connection
+ */
+export const archiveProjectConnection = <ThrowOnError extends boolean = false>(options: Options<ArchiveProjectConnectionData, ThrowOnError>): RequestResult<ArchiveProjectConnectionResponses, ArchiveProjectConnectionErrors, ThrowOnError> => (options.client ?? client).delete<ArchiveProjectConnectionResponses, ArchiveProjectConnectionErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/llm-connections/{connection_id}', ...options });
+
+/**
+ * Get Project Connection
+ */
+export const getProjectConnection = <ThrowOnError extends boolean = false>(options: Options<GetProjectConnectionData, ThrowOnError>): RequestResult<GetProjectConnectionResponses, GetProjectConnectionErrors, ThrowOnError> => (options.client ?? client).get<GetProjectConnectionResponses, GetProjectConnectionErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/llm-connections/{connection_id}', ...options });
+
+/**
+ * Update Project Connection
+ */
+export const updateProjectConnection = <ThrowOnError extends boolean = false>(options: Options<UpdateProjectConnectionData, ThrowOnError>): RequestResult<UpdateProjectConnectionResponses, UpdateProjectConnectionErrors, ThrowOnError> => (options.client ?? client).patch<UpdateProjectConnectionResponses, UpdateProjectConnectionErrors, ThrowOnError>({
+    url: '/api/v1/projects/{key}/llm-connections/{connection_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Test Project Connection
+ *
+ * Send one tiny call through the MESH, not around it.
+ *
+ * Testing by calling the provider directly here would prove the credentials work
+ * while bypassing exactly the layer that matters — the residency gate, the
+ * guardrails, the ledger. A test that skips them tests the wrong thing.
+ */
+export const testProjectConnection = <ThrowOnError extends boolean = false>(options: Options<TestProjectConnectionData, ThrowOnError>): RequestResult<TestProjectConnectionResponses, TestProjectConnectionErrors, ThrowOnError> => (options.client ?? client).post<TestProjectConnectionResponses, TestProjectConnectionErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/llm-connections/{connection_id}/test', ...options });
+
+/**
  * List Members
  */
 export const listMembers = <ThrowOnError extends boolean = false>(options: Options<ListMembersData, ThrowOnError>): RequestResult<ListMembersResponses, ListMembersErrors, ThrowOnError> => (options.client ?? client).get<ListMembersResponses, ListMembersErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/members', ...options });
@@ -310,6 +394,67 @@ export const replaceMembers = <ThrowOnError extends boolean = false>(options: Op
  * Remove Member
  */
 export const removeMember = <ThrowOnError extends boolean = false>(options: Options<RemoveMemberData, ThrowOnError>): RequestResult<RemoveMemberResponses, RemoveMemberErrors, ThrowOnError> => (options.client ?? client).delete<RemoveMemberResponses, RemoveMemberErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/members/{user_id}', ...options });
+
+/**
+ * List Prompts
+ */
+export const listPrompts = <ThrowOnError extends boolean = false>(options: Options<ListPromptsData, ThrowOnError>): RequestResult<ListPromptsResponses, ListPromptsErrors, ThrowOnError> => (options.client ?? client).get<ListPromptsResponses, ListPromptsErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/prompts', ...options });
+
+/**
+ * Upsert Prompt
+ *
+ * Prompts are append-only: saving an existing name adds a VERSION.
+ *
+ * A prompt is part of how a decision was produced, so overwriting one would erase the
+ * explanation of every past call that used it (AI Act Art 12).
+ */
+export const upsertPrompt = <ThrowOnError extends boolean = false>(options: Options<UpsertPromptData, ThrowOnError>): RequestResult<UpsertPromptResponses, UpsertPromptErrors, ThrowOnError> => (options.client ?? client).post<UpsertPromptResponses, UpsertPromptErrors, ThrowOnError>({
+    url: '/api/v1/projects/{key}/prompts',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Prompt Versions
+ */
+export const getPromptVersions = <ThrowOnError extends boolean = false>(options: Options<GetPromptVersionsData, ThrowOnError>): RequestResult<GetPromptVersionsResponses, GetPromptVersionsErrors, ThrowOnError> => (options.client ?? client).get<GetPromptVersionsResponses, GetPromptVersionsErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/prompts/{name}', ...options });
+
+/**
+ * List Quotas
+ */
+export const listQuotas = <ThrowOnError extends boolean = false>(options: Options<ListQuotasData, ThrowOnError>): RequestResult<ListQuotasResponses, ListQuotasErrors, ThrowOnError> => (options.client ?? client).get<ListQuotasResponses, ListQuotasErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/quotas', ...options });
+
+/**
+ * Create Quota
+ */
+export const createQuota = <ThrowOnError extends boolean = false>(options: Options<CreateQuotaData, ThrowOnError>): RequestResult<CreateQuotaResponses, CreateQuotaErrors, ThrowOnError> => (options.client ?? client).post<CreateQuotaResponses, CreateQuotaErrors, ThrowOnError>({
+    url: '/api/v1/projects/{key}/quotas',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Quota
+ */
+export const deleteQuota = <ThrowOnError extends boolean = false>(options: Options<DeleteQuotaData, ThrowOnError>): RequestResult<DeleteQuotaResponses, DeleteQuotaErrors, ThrowOnError> => (options.client ?? client).delete<DeleteQuotaResponses, DeleteQuotaErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/quotas/{quota_id}', ...options });
+
+/**
+ * Update Quota
+ */
+export const updateQuota = <ThrowOnError extends boolean = false>(options: Options<UpdateQuotaData, ThrowOnError>): RequestResult<UpdateQuotaResponses, UpdateQuotaErrors, ThrowOnError> => (options.client ?? client).patch<UpdateQuotaResponses, UpdateQuotaErrors, ThrowOnError>({
+    url: '/api/v1/projects/{key}/quotas/{quota_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * List Recipes
@@ -374,6 +519,11 @@ export const createUpload = <ThrowOnError extends boolean = false>(options: Opti
         ...options.headers
     }
 });
+
+/**
+ * Get Usage
+ */
+export const getUsage = <ThrowOnError extends boolean = false>(options: Options<GetUsageData, ThrowOnError>): RequestResult<GetUsageResponses, GetUsageErrors, ThrowOnError> => (options.client ?? client).get<GetUsageResponses, GetUsageErrors, ThrowOnError>({ url: '/api/v1/projects/{key}/usage', ...options });
 
 /**
  * Readyz

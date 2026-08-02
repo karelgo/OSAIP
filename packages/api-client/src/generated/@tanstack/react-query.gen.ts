@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { archiveConnection, archiveDataset, archiveProject, archiveRecipe, callback, cancelJob, createBuild, createConnection, createDataset, createProject, createRecipe, createUpload, emitTestEvent, eventsStream, getConnection, getDataset, getFlow, getJob, getMe, getProfile, getProject, getRecipe, getStepLog, healthz, inspectConnection, listAudit, listConnections, listDatasets, listJobs, listMembers, listNotifications, listProjects, listRecipes, login, logout, markAllRead, markRead, type Options, patchConnection, patchDataset, patchPrefs, patchProject, patchRecipe, previewRecipe, projectAudit, readyz, recomputeProfile, removeMember, replaceMembers, sampleDataset, search, testConnection, verifyAuditChain } from '../sdk.gen';
-import type { ArchiveConnectionData, ArchiveConnectionError, ArchiveConnectionResponse, ArchiveDatasetData, ArchiveDatasetError, ArchiveDatasetResponse, ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, ArchiveRecipeData, ArchiveRecipeError, ArchiveRecipeResponse, CallbackData, CallbackError, CancelJobData, CancelJobError, CancelJobResponse, CreateBuildData, CreateBuildError, CreateBuildResponse, CreateConnectionData, CreateConnectionError, CreateConnectionResponse, CreateDatasetData, CreateDatasetError, CreateDatasetResponse, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateRecipeData, CreateRecipeError, CreateRecipeResponse, CreateUploadData, CreateUploadError, CreateUploadResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetConnectionData, GetConnectionError, GetConnectionResponse, GetDatasetData, GetDatasetError, GetDatasetResponse, GetFlowData, GetFlowError, GetFlowResponse, GetJobData, GetJobError, GetJobResponse, GetMeData, GetMeResponse, GetProfileData, GetProfileError, GetProfileResponse, GetProjectData, GetProjectError, GetProjectResponse, GetRecipeData, GetRecipeError, GetRecipeResponse, GetStepLogData, GetStepLogError, GetStepLogResponse, HealthzData, HealthzResponse, InspectConnectionData, InspectConnectionError, InspectConnectionResponse, ListAuditData, ListAuditError, ListAuditResponse, ListConnectionsData, ListConnectionsError, ListConnectionsResponse, ListDatasetsData, ListDatasetsError, ListDatasetsResponse, ListJobsData, ListJobsError, ListJobsResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, ListRecipesData, ListRecipesError, ListRecipesResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchConnectionData, PatchConnectionError, PatchConnectionResponse, PatchDatasetData, PatchDatasetError, PatchDatasetResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, PatchRecipeData, PatchRecipeError, PatchRecipeResponse, PreviewRecipeData, PreviewRecipeError, PreviewRecipeResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RecomputeProfileData, RecomputeProfileError, RecomputeProfileResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SampleDatasetData, SampleDatasetError, SampleDatasetResponse, SearchData, SearchError, SearchResponse, TestConnectionData, TestConnectionError, TestConnectionResponse, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
+import { archiveConnection, archiveDataset, archiveProject, archiveProjectConnection, archiveRecipe, callback, cancelJob, createBuild, createConnection, createDataset, createGlobalConnection, createPolicy, createProject, createProjectConnection, createQuota, createRecipe, createUpload, deleteQuota, emitTestEvent, eventsStream, getConnection, getDataset, getFlow, getJob, getMe, getProfile, getProject, getProjectConnection, getPromptVersions, getRecipe, getStepLog, getUsage, healthz, inspectConnection, listAudit, listConnections, listDatasets, listGlobalConnections, listJobs, listMembers, listNotifications, listPolicies, listProjectConnections, listProjects, listPrompts, listQuotas, listRecipes, login, logout, markAllRead, markRead, type Options, patchConnection, patchDataset, patchPrefs, patchProject, patchRecipe, previewRecipe, projectAudit, readyz, recomputeProfile, removeMember, replaceMembers, sampleDataset, search, testConnection, testProjectConnection, updateProjectConnection, updateQuota, upsertPrompt, verifyAuditChain } from '../sdk.gen';
+import type { ArchiveConnectionData, ArchiveConnectionError, ArchiveConnectionResponse, ArchiveDatasetData, ArchiveDatasetError, ArchiveDatasetResponse, ArchiveProjectConnectionData, ArchiveProjectConnectionError, ArchiveProjectConnectionResponse, ArchiveProjectData, ArchiveProjectError, ArchiveProjectResponse, ArchiveRecipeData, ArchiveRecipeError, ArchiveRecipeResponse, CallbackData, CallbackError, CancelJobData, CancelJobError, CancelJobResponse, CreateBuildData, CreateBuildError, CreateBuildResponse, CreateConnectionData, CreateConnectionError, CreateConnectionResponse, CreateDatasetData, CreateDatasetError, CreateDatasetResponse, CreateGlobalConnectionData, CreateGlobalConnectionError, CreatePolicyData, CreatePolicyError, CreateProjectConnectionData, CreateProjectConnectionError, CreateProjectData, CreateProjectError, CreateProjectResponse, CreateQuotaData, CreateQuotaError, CreateRecipeData, CreateRecipeError, CreateRecipeResponse, CreateUploadData, CreateUploadError, CreateUploadResponse, DeleteQuotaData, DeleteQuotaError, DeleteQuotaResponse, EmitTestEventData, EmitTestEventResponse, EventsStreamData, EventsStreamError, GetConnectionData, GetConnectionError, GetConnectionResponse, GetDatasetData, GetDatasetError, GetDatasetResponse, GetFlowData, GetFlowError, GetFlowResponse, GetJobData, GetJobError, GetJobResponse, GetMeData, GetMeResponse, GetProfileData, GetProfileError, GetProfileResponse, GetProjectConnectionData, GetProjectConnectionError, GetProjectData, GetProjectError, GetProjectResponse, GetPromptVersionsData, GetPromptVersionsError, GetRecipeData, GetRecipeError, GetRecipeResponse, GetStepLogData, GetStepLogError, GetStepLogResponse, GetUsageData, GetUsageError, HealthzData, HealthzResponse, InspectConnectionData, InspectConnectionError, InspectConnectionResponse, ListAuditData, ListAuditError, ListAuditResponse, ListConnectionsData, ListConnectionsError, ListConnectionsResponse, ListDatasetsData, ListDatasetsError, ListDatasetsResponse, ListGlobalConnectionsData, ListJobsData, ListJobsError, ListJobsResponse, ListMembersData, ListMembersError, ListMembersResponse, ListNotificationsData, ListNotificationsError, ListNotificationsResponse, ListPoliciesData, ListProjectConnectionsData, ListProjectConnectionsError, ListProjectsData, ListProjectsError, ListProjectsResponse, ListPromptsData, ListPromptsError, ListQuotasData, ListQuotasError, ListRecipesData, ListRecipesError, ListRecipesResponse, LoginData, LoginError, LogoutData, LogoutResponse, MarkAllReadData, MarkAllReadResponse, MarkReadData, MarkReadError, MarkReadResponse, PatchConnectionData, PatchConnectionError, PatchConnectionResponse, PatchDatasetData, PatchDatasetError, PatchDatasetResponse, PatchPrefsData, PatchPrefsError, PatchPrefsResponse, PatchProjectData, PatchProjectError, PatchProjectResponse, PatchRecipeData, PatchRecipeError, PatchRecipeResponse, PreviewRecipeData, PreviewRecipeError, PreviewRecipeResponse, ProjectAuditData, ProjectAuditError, ProjectAuditResponse, ReadyzData, ReadyzResponse, RecomputeProfileData, RecomputeProfileError, RecomputeProfileResponse, RemoveMemberData, RemoveMemberError, RemoveMemberResponse, ReplaceMembersData, ReplaceMembersError, ReplaceMembersResponse, SampleDatasetData, SampleDatasetError, SampleDatasetResponse, SearchData, SearchError, SearchResponse, TestConnectionData, TestConnectionError, TestConnectionResponse, TestProjectConnectionData, TestProjectConnectionError, UpdateProjectConnectionData, UpdateProjectConnectionError, UpdateQuotaData, UpdateQuotaError, UpsertPromptData, UpsertPromptError, VerifyAuditChainData, VerifyAuditChainResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -164,6 +164,41 @@ export const eventsStreamOptions = (options?: Options<EventsStreamData>) => quer
     queryKey: eventsStreamQueryKey(options)
 });
 
+export const listPoliciesQueryKey = (options?: Options<ListPoliciesData>) => createQueryKey('listPolicies', options);
+
+/**
+ * List Policies
+ */
+export const listPoliciesOptions = (options?: Options<ListPoliciesData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof listPoliciesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listPolicies({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listPoliciesQueryKey(options)
+});
+
+/**
+ * Create Policy
+ */
+export const createPolicyMutation = (options?: Partial<Options<CreatePolicyData>>): UseMutationOptions<unknown, CreatePolicyError, Options<CreatePolicyData>> => {
+    const mutationOptions: UseMutationOptions<unknown, CreatePolicyError, Options<CreatePolicyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createPolicy({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const healthzQueryKey = (options?: Options<HealthzData>) => createQueryKey('healthz', options);
 
 /**
@@ -181,6 +216,41 @@ export const healthzOptions = (options?: Options<HealthzData>) => queryOptions<H
     },
     queryKey: healthzQueryKey(options)
 });
+
+export const listGlobalConnectionsQueryKey = (options?: Options<ListGlobalConnectionsData>) => createQueryKey('listGlobalConnections', options);
+
+/**
+ * List Global Connections
+ */
+export const listGlobalConnectionsOptions = (options?: Options<ListGlobalConnectionsData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof listGlobalConnectionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listGlobalConnections({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listGlobalConnectionsQueryKey(options)
+});
+
+/**
+ * Create Global Connection
+ */
+export const createGlobalConnectionMutation = (options?: Partial<Options<CreateGlobalConnectionData>>): UseMutationOptions<unknown, CreateGlobalConnectionError, Options<CreateGlobalConnectionData>> => {
+    const mutationOptions: UseMutationOptions<unknown, CreateGlobalConnectionError, Options<CreateGlobalConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createGlobalConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getMeQueryKey = (options?: Options<GetMeData>) => createQueryKey('getMe', options);
 
@@ -896,6 +966,116 @@ export const getStepLogInfiniteOptions = (options: Options<GetStepLogData>) => {
     return opts as Omit<typeof opts, 'initialData'>;
 };
 
+export const listProjectConnectionsQueryKey = (options: Options<ListProjectConnectionsData>) => createQueryKey('listProjectConnections', options);
+
+/**
+ * List Project Connections
+ */
+export const listProjectConnectionsOptions = (options: Options<ListProjectConnectionsData>) => queryOptions<unknown, ListProjectConnectionsError, unknown, ReturnType<typeof listProjectConnectionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listProjectConnections({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listProjectConnectionsQueryKey(options)
+});
+
+/**
+ * Create Project Connection
+ */
+export const createProjectConnectionMutation = (options?: Partial<Options<CreateProjectConnectionData>>): UseMutationOptions<unknown, CreateProjectConnectionError, Options<CreateProjectConnectionData>> => {
+    const mutationOptions: UseMutationOptions<unknown, CreateProjectConnectionError, Options<CreateProjectConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createProjectConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Archive Project Connection
+ */
+export const archiveProjectConnectionMutation = (options?: Partial<Options<ArchiveProjectConnectionData>>): UseMutationOptions<ArchiveProjectConnectionResponse, ArchiveProjectConnectionError, Options<ArchiveProjectConnectionData>> => {
+    const mutationOptions: UseMutationOptions<ArchiveProjectConnectionResponse, ArchiveProjectConnectionError, Options<ArchiveProjectConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await archiveProjectConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getProjectConnectionQueryKey = (options: Options<GetProjectConnectionData>) => createQueryKey('getProjectConnection', options);
+
+/**
+ * Get Project Connection
+ */
+export const getProjectConnectionOptions = (options: Options<GetProjectConnectionData>) => queryOptions<unknown, GetProjectConnectionError, unknown, ReturnType<typeof getProjectConnectionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getProjectConnection({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getProjectConnectionQueryKey(options)
+});
+
+/**
+ * Update Project Connection
+ */
+export const updateProjectConnectionMutation = (options?: Partial<Options<UpdateProjectConnectionData>>): UseMutationOptions<unknown, UpdateProjectConnectionError, Options<UpdateProjectConnectionData>> => {
+    const mutationOptions: UseMutationOptions<unknown, UpdateProjectConnectionError, Options<UpdateProjectConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateProjectConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Test Project Connection
+ *
+ * Send one tiny call through the MESH, not around it.
+ *
+ * Testing by calling the provider directly here would prove the credentials work
+ * while bypassing exactly the layer that matters — the residency gate, the
+ * guardrails, the ledger. A test that skips them tests the wrong thing.
+ */
+export const testProjectConnectionMutation = (options?: Partial<Options<TestProjectConnectionData>>): UseMutationOptions<unknown, TestProjectConnectionError, Options<TestProjectConnectionData>> => {
+    const mutationOptions: UseMutationOptions<unknown, TestProjectConnectionError, Options<TestProjectConnectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await testProjectConnection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const listMembersQueryKey = (options: Options<ListMembersData>) => createQueryKey('listMembers', options);
 
 /**
@@ -938,6 +1118,133 @@ export const removeMemberMutation = (options?: Partial<Options<RemoveMemberData>
     const mutationOptions: UseMutationOptions<RemoveMemberResponse, RemoveMemberError, Options<RemoveMemberData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await removeMember({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listPromptsQueryKey = (options: Options<ListPromptsData>) => createQueryKey('listPrompts', options);
+
+/**
+ * List Prompts
+ */
+export const listPromptsOptions = (options: Options<ListPromptsData>) => queryOptions<unknown, ListPromptsError, unknown, ReturnType<typeof listPromptsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listPrompts({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listPromptsQueryKey(options)
+});
+
+/**
+ * Upsert Prompt
+ *
+ * Prompts are append-only: saving an existing name adds a VERSION.
+ *
+ * A prompt is part of how a decision was produced, so overwriting one would erase the
+ * explanation of every past call that used it (AI Act Art 12).
+ */
+export const upsertPromptMutation = (options?: Partial<Options<UpsertPromptData>>): UseMutationOptions<unknown, UpsertPromptError, Options<UpsertPromptData>> => {
+    const mutationOptions: UseMutationOptions<unknown, UpsertPromptError, Options<UpsertPromptData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await upsertPrompt({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getPromptVersionsQueryKey = (options: Options<GetPromptVersionsData>) => createQueryKey('getPromptVersions', options);
+
+/**
+ * Get Prompt Versions
+ */
+export const getPromptVersionsOptions = (options: Options<GetPromptVersionsData>) => queryOptions<unknown, GetPromptVersionsError, unknown, ReturnType<typeof getPromptVersionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPromptVersions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPromptVersionsQueryKey(options)
+});
+
+export const listQuotasQueryKey = (options: Options<ListQuotasData>) => createQueryKey('listQuotas', options);
+
+/**
+ * List Quotas
+ */
+export const listQuotasOptions = (options: Options<ListQuotasData>) => queryOptions<unknown, ListQuotasError, unknown, ReturnType<typeof listQuotasQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listQuotas({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listQuotasQueryKey(options)
+});
+
+/**
+ * Create Quota
+ */
+export const createQuotaMutation = (options?: Partial<Options<CreateQuotaData>>): UseMutationOptions<unknown, CreateQuotaError, Options<CreateQuotaData>> => {
+    const mutationOptions: UseMutationOptions<unknown, CreateQuotaError, Options<CreateQuotaData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createQuota({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Quota
+ */
+export const deleteQuotaMutation = (options?: Partial<Options<DeleteQuotaData>>): UseMutationOptions<DeleteQuotaResponse, DeleteQuotaError, Options<DeleteQuotaData>> => {
+    const mutationOptions: UseMutationOptions<DeleteQuotaResponse, DeleteQuotaError, Options<DeleteQuotaData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteQuota({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Quota
+ */
+export const updateQuotaMutation = (options?: Partial<Options<UpdateQuotaData>>): UseMutationOptions<unknown, UpdateQuotaError, Options<UpdateQuotaData>> => {
+    const mutationOptions: UseMutationOptions<unknown, UpdateQuotaError, Options<UpdateQuotaData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateQuota({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -1098,6 +1405,24 @@ export const createUploadMutation = (options?: Partial<Options<CreateUploadData>
     };
     return mutationOptions;
 };
+
+export const getUsageQueryKey = (options: Options<GetUsageData>) => createQueryKey('getUsage', options);
+
+/**
+ * Get Usage
+ */
+export const getUsageOptions = (options: Options<GetUsageData>) => queryOptions<unknown, GetUsageError, unknown, ReturnType<typeof getUsageQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getUsage({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getUsageQueryKey(options)
+});
 
 export const readyzQueryKey = (options?: Options<ReadyzData>) => createQueryKey('readyz', options);
 

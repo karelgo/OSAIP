@@ -1,9 +1,11 @@
 """problem+json error envelope (§6.6): every error carries a user-facing hint and a
 docs link. Raise `Problem` anywhere; handlers translate everything else."""
 
+from collections.abc import Sequence
 from typing import Any
 
 from fastapi import FastAPI, Request, Response
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -44,10 +46,30 @@ def problem_response(request: Request, problem: Problem) -> Response:
     import json
 
     return Response(
-        content=json.dumps(body),
+        # Encoded first: `extra` carries caller-supplied values (uuids, datetimes, and
+        # — before this — pydantic's raw exception objects). A problem response that
+        # cannot serialise turns a clean 4xx into a 500, which is the one thing an
+        # error path must never do.
+        content=json.dumps(jsonable_encoder(body)),
         status_code=problem.status,
         media_type=PROBLEM_CONTENT_TYPE,
     )
+
+
+def _safe_errors(errors: Sequence[Any]) -> list[dict[str, Any]]:
+    """Strip pydantic's `ctx`, which holds the raw exception OBJECT for any validator
+    that raises ValueError. `msg` already carries the text, and jsonable_encoder would
+    render the exception as an empty object — informative to nobody.
+    """
+    safe: list[dict[str, Any]] = []
+    for error in errors:
+        item = {
+            "type": error.get("type"),
+            "loc": [str(part) for part in error.get("loc", ())],
+            "msg": error.get("msg"),
+        }
+        safe.append(item)
+    return safe
 
 
 def register_problem_handlers(app: FastAPI) -> None:
@@ -81,6 +103,6 @@ def register_problem_handlers(app: FastAPI) -> None:
                 detail="One or more fields are missing or invalid.",
                 hint="Fix the fields listed in `errors` and resend the request.",
                 slug="validation",
-                extra={"errors": exc.errors()},
+                extra={"errors": _safe_errors(exc.errors())},
             ),
         )
