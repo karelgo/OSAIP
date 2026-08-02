@@ -189,6 +189,7 @@ async def test_two_connections_one_code_path(
                 "/v1/complete",
                 json={
                     "connection_id": str(connection.id),
+                    "project_id": str(connection.project_id),
                     "model": model,
                     "messages": [{"role": "user", "content": "hallo"}],
                     "max_classification": "none",
@@ -228,6 +229,7 @@ async def test_redaction_happens_before_the_real_provider(
             "/v1/complete",
             json={
                 "connection_id": str(connection.id),
+                "project_id": str(connection.project_id),
                 "model": "gpt-4o-mini",
                 "messages": [{"role": "user", "content": "BSN 111222333 en 1234.56.782"}],
                 "max_classification": "bsn",

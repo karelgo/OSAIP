@@ -45,6 +45,7 @@ async def test_post_rejection_still_writes_a_ledger_row(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "classify this"}],
             "max_classification": "none",
@@ -81,6 +82,7 @@ async def test_post_rejection_settles_its_quota_hold(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "classify this"}],
             "max_classification": "none",
@@ -105,6 +107,7 @@ async def test_a_rejected_answer_is_never_stored_or_cached(
 
     payload = {
         "connection_id": str(connection.id),
+        "project_id": str(connection.project_id),
         "model": "echo-1",
         "messages": [{"role": "user", "content": "classify this"}],
         "max_classification": "none",

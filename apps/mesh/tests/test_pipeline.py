@@ -15,9 +15,14 @@ from osaip_mesh.providers.base import CompletionRequest, CompletionResult, Messa
 from osaip_shared.ids import new_id
 
 
-async def _call(client: httpx.AsyncClient, connection_id: uuid.UUID, **body: Any) -> Any:
+async def _call(
+    client: httpx.AsyncClient, connection_id: uuid.UUID, project_id: Any = None, **body: Any
+) -> Any:
     payload = {
         "connection_id": str(connection_id),
+        # A project-scoped connection may only be used by its owner (ADR-0010 §5), so
+        # every caller declares the project it is acting for.
+        **({"project_id": str(project_id)} if project_id else {}),
         "model": "echo-1",
         "messages": [{"role": "user", "content": "hello there world"}],
         "max_classification": "none",
@@ -32,7 +37,7 @@ async def test_call_is_ledgered_with_messages_and_span(
     mesh_client: httpx.AsyncClient, mesh_session: AsyncSession, make_connection: Any
 ) -> None:
     connection = await make_connection()
-    body = await _call(mesh_client, connection.id)
+    body = await _call(mesh_client, connection.id, connection.project_id)
 
     call = await mesh_session.get(LlmCall, uuid.UUID(body["call_id"]))
     assert call is not None
@@ -78,10 +83,11 @@ async def test_caller_supplied_trace_is_reused(
     """Two calls in one build must share the caller's trace, not start two roots."""
     connection = await make_connection()
     trace_id = new_id()
-    first = await _call(mesh_client, connection.id, trace_id=str(trace_id))
+    first = await _call(mesh_client, connection.id, connection.project_id, trace_id=str(trace_id))
     second = await _call(
         mesh_client,
         connection.id,
+        connection.project_id,
         trace_id=str(trace_id),
         messages=[{"role": "user", "content": "a different prompt"}],
     )
@@ -122,12 +128,19 @@ async def test_cache_does_not_cross_projects(
     make_connection: Any,
     make_project: Any,
 ) -> None:
-    """The same prompt through the same connection, from another project, is a miss."""
+    """The same prompt through the same GLOBAL connection, from another project, is a
+    miss. Global is the case that matters: a project-scoped connection is now refused
+    outright from another project (ADR-0010 §5), so the cache key is the only thing
+    standing between two projects that legitimately share one endpoint."""
     connection = await make_connection(cache_ttl_s=300)
+    connection.scope = "global"
+    connection.project_id = None
+    await mesh_session.commit()
+    owner = await make_project()
     other = await make_project()
     await mesh_session.commit()
 
-    first = await _call(mesh_client, connection.id, project_id=str(connection.project_id))
+    first = await _call(mesh_client, connection.id, project_id=str(owner.id))
     second = await _call(mesh_client, connection.id, project_id=str(other.id))
     assert first["cache_hit"] is False
     assert second["cache_hit"] is False
@@ -137,8 +150,8 @@ async def test_guardrail_purpose_is_never_cached(
     mesh_client: httpx.AsyncClient, mesh_session: AsyncSession, make_connection: Any
 ) -> None:
     connection = await make_connection(cache_ttl_s=300)
-    await _call(mesh_client, connection.id, purpose="guardrail")
-    again = await _call(mesh_client, connection.id, purpose="guardrail")
+    await _call(mesh_client, connection.id, connection.project_id, purpose="guardrail")
+    again = await _call(mesh_client, connection.id, connection.project_id, purpose="guardrail")
     assert again["cache_hit"] is False
 
 
@@ -146,8 +159,8 @@ async def test_caching_is_off_by_default(
     mesh_client: httpx.AsyncClient, mesh_session: AsyncSession, make_connection: Any
 ) -> None:
     connection = await make_connection()  # cache_ttl_s defaults to 0
-    await _call(mesh_client, connection.id)
-    again = await _call(mesh_client, connection.id)
+    await _call(mesh_client, connection.id, connection.project_id)
+    again = await _call(mesh_client, connection.id, connection.project_id)
     assert again["cache_hit"] is False
 
 

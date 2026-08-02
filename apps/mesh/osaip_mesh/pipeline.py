@@ -61,6 +61,11 @@ class ConnectionInfo:
     name: str | None = None
     # Already merged with the non-removable baseline (osaip_guardrails.policy).
     policy: PolicyConfig = BASELINE
+    # Who owns this connection. Carried so the pipeline can enforce §5b's first step
+    # ("authz — project + connection permission") itself: `project_id` on the request
+    # used to be attribution metadata that nothing compared against anything.
+    scope: str = "global"
+    owner_project_id: uuid.UUID | None = None
 
 
 @dataclass
@@ -120,6 +125,15 @@ async def run_pipeline(
     """
     started_at = _utcnow()
     started = time.perf_counter()
+
+    # ── authz (§5b's first step) ────────────────────────────────────────────────
+    # A project-scoped connection may only be used by its owner. This is enforced HERE
+    # and not only in the API because 3b's callers — the worker's build path and Prompt
+    # Studio — carry a connection id straight from user-editable recipe config and do
+    # not traverse the API's project-scoped routes. Without it, learning another
+    # project's connection id would hand over its API key, its model allowlist and its
+    # budget (ADR-0010 §5).
+    _enforce_connection_scope(connection, context)
 
     # ── CP-11 residency gate: before any redaction, because the question "may this
     #    class of data go to this endpoint at all?" is not softened by redacting it ──
@@ -464,6 +478,19 @@ async def _record_failure(
     )
     await settle(session, reservation, actual_micros=0, call_id=None)
     await session.commit()
+
+
+class ConnectionForbidden(Exception):
+    """A project-scoped connection was used from another project. Deliberately carries
+    no detail about the connection: whether an id exists elsewhere is not the caller's
+    business."""
+
+
+def _enforce_connection_scope(connection: ConnectionInfo, context: CallContext) -> None:
+    if connection.scope != "project" or connection.owner_project_id is None:
+        return  # global connections are usable by every project, by definition
+    if context.project_id != connection.owner_project_id:
+        raise ConnectionForbidden("This connection does not belong to this project.")
 
 
 def _scopes(connection: ConnectionInfo, context: CallContext) -> list[Scope]:

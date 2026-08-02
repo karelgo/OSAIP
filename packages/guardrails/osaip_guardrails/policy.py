@@ -38,12 +38,19 @@ class PolicyConfig:
 BASELINE = PolicyConfig()
 
 
-def merge_policy(stages: dict[str, Any] | None) -> PolicyConfig:
+def merge_policy(
+    stages: dict[str, Any] | None, request_output_schema: dict[str, Any] | None = None
+) -> PolicyConfig:
     """Build the effective policy from a `guardrail_policies.stages` document.
 
     Unknown keys are ignored rather than rejected so an older node can still run a
     policy written by a newer one; anything that would DISABLE the baseline is ignored
     too, which is the point.
+
+    `request_output_schema` is the per-call shape an `llm_extract` recipe requires. It
+    can only ADD a constraint: if the connection's policy already pins a schema, that
+    one wins, because a caller must not be able to loosen a shape an operator set
+    (ADR-0010 §4 — the same add-never-remove rule as the PII baseline).
     """
     stages = stages or {}
     pre = stages.get("pre", {}) if isinstance(stages.get("pre"), dict) else {}
@@ -51,6 +58,8 @@ def merge_policy(stages: dict[str, Any] | None) -> PolicyConfig:
 
     max_chars = pre.get("max_input_chars")
     schema = post.get("schema")
+    if not isinstance(schema, dict) and isinstance(request_output_schema, dict):
+        schema = request_output_schema
     return PolicyConfig(
         redact_pii=True,  # deliberately not read from the document
         use_presidio=bool(pre.get("presidio", False)),

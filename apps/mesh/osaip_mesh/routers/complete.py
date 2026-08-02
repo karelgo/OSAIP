@@ -20,6 +20,7 @@ from osaip_guardrails.policy import merge_policy
 from osaip_mesh.guardrails import InputRejected, OutputRejected, ResidencyBlocked
 from osaip_mesh.pipeline import (
     CallContext,
+    ConnectionForbidden,
     ConnectionInfo,
     MeshOutcome,
     messages_from_payload,
@@ -59,6 +60,10 @@ class CompleteIn(BaseModel):
     job_step_id: uuid.UUID | None = None
     row_key: str | None = Field(default=None, max_length=255)
     depth: int = Field(default=0, ge=0, le=4)
+    # The shape an `llm_extract` recipe needs back. It can only ADD a constraint — a
+    # schema pinned on the connection's guardrail policy still wins, so a caller cannot
+    # loosen what an operator set (ADR-0010 §4).
+    output_schema: dict[str, Any] | None = None
 
 
 class CompleteOut(BaseModel):
@@ -178,7 +183,9 @@ async def complete(
         audit_mode=connection.audit_mode,
         data_residency=connection.data_residency,
         name=connection.name,
-        policy=merge_policy(await _policy_stages(session, connection)),
+        policy=merge_policy(await _policy_stages(session, connection), body.output_schema),
+        scope=connection.scope,
+        owner_project_id=connection.project_id,
     )
     try:
         outcome: MeshOutcome = await run_pipeline(
@@ -190,6 +197,16 @@ async def complete(
             request=completion,
             context=context,
         )
+    except ConnectionForbidden as exc:
+        # 404, not 403: whether a connection with this id exists in some other project
+        # is not this caller's business, and a 403 would confirm it does.
+        raise Problem(
+            404,
+            title="LLM connection not found",
+            detail="No such active LLM connection.",
+            hint="Check the connection id.",
+            slug="not-found",
+        ) from exc
     except ResidencyBlocked as exc:
         # 403, not 422: this is not a malformed request, it is a refusal to route this
         # class of data to this endpoint at all (CP-11).

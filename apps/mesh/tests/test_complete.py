@@ -19,6 +19,7 @@ async def test_requires_service_token(mesh_app: Any, make_connection: Any) -> No
             "/v1/complete",
             json={
                 "connection_id": str(connection.id),
+                "project_id": str(connection.project_id),
                 "model": "echo-1",
                 "messages": [{"role": "user", "content": "hi"}],
             },
@@ -33,6 +34,7 @@ async def test_echo_completion_is_deterministic_and_counted(
     connection = await make_connection()
     payload = {
         "connection_id": str(connection.id),
+        "project_id": str(connection.project_id),
         "model": "echo-1",
         "messages": [{"role": "user", "content": "hello there world"}],
         "max_classification": "none",
@@ -59,6 +61,7 @@ async def test_model_allowlist_is_enforced(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "gpt-4o",
             "messages": [{"role": "user", "content": "hi"}],
         },
@@ -76,6 +79,7 @@ async def test_echo_refuses_non_local_residency(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "hi"}],
             # Declared `none` so the CP-11 gate lets it through and the echo-must-be-
@@ -113,6 +117,7 @@ async def test_hosted_providers_route_to_the_litellm_adapter(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "some-model",
             "messages": [{"role": "user", "content": "hi"}],
             "max_classification": "none",  # past the CP-11 gate, into the provider

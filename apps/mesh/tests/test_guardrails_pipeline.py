@@ -19,9 +19,13 @@ from osaip_shared.ids import new_id
 BSN = "111222333"
 
 
-async def _post(client: httpx.AsyncClient, connection_id: uuid.UUID, **body: Any) -> httpx.Response:
+async def _post(
+    client: httpx.AsyncClient, connection_id: uuid.UUID, project_id: Any = None, **body: Any
+) -> httpx.Response:
     payload = {
         "connection_id": str(connection_id),
+        # A project-scoped connection may only be used by its owner (ADR-0010 §5).
+        **({"project_id": str(project_id)} if project_id else {}),
         "model": "echo-1",
         "messages": [{"role": "user", "content": f"De klant met BSN {BSN} belde."}],
         **body,
@@ -36,7 +40,9 @@ async def test_a_bsn_is_redacted_before_the_provider_and_in_the_audit(
     mesh_client: httpx.AsyncClient, mesh_session: AsyncSession, make_connection: Any
 ) -> None:
     connection = await make_connection()
-    response = await _post(mesh_client, connection.id, max_classification="bsn")
+    response = await _post(
+        mesh_client, connection.id, connection.project_id, max_classification="bsn"
+    )
     assert response.status_code == 200, response.text
     body = response.json()
 
@@ -66,7 +72,9 @@ async def test_full_audit_mode_keeps_the_raw_prompt(
     """`full` is the sanctioned way to retain raw text — and it still redacts before the
     provider call, it only adds a second stored copy."""
     connection = await make_connection(audit_mode="full")
-    body = (await _post(mesh_client, connection.id, max_classification="bsn")).json()
+    body = (
+        await _post(mesh_client, connection.id, connection.project_id, max_classification="bsn")
+    ).json()
 
     assert BSN not in body["content"]  # the provider still never saw it
     rows = (
@@ -87,7 +95,9 @@ async def test_redaction_is_recorded_as_a_guardrail_event(
     mesh_client: httpx.AsyncClient, mesh_session: AsyncSession, make_connection: Any
 ) -> None:
     connection = await make_connection()
-    body = (await _post(mesh_client, connection.id, max_classification="bsn")).json()
+    body = (
+        await _post(mesh_client, connection.id, connection.project_id, max_classification="bsn")
+    ).json()
 
     events = (
         (
@@ -114,6 +124,7 @@ async def test_the_response_is_returned_to_the_caller_verbatim(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "geen persoonsgegevens hier"}],
             "max_classification": "none",
@@ -139,6 +150,7 @@ async def test_bsn_to_an_external_connection_is_blocked_and_audited(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "gpt-4o",
             "messages": [{"role": "user", "content": f"BSN {BSN}"}],
             "max_classification": "bsn",
@@ -190,6 +202,7 @@ async def test_an_undeclared_classification_is_blocked_on_an_external_connection
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "gpt-4o",
             "messages": [{"role": "user", "content": "hallo"}],
         },
@@ -211,6 +224,7 @@ async def test_non_personal_data_may_go_external(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "gpt-4o",
             "messages": [{"role": "user", "content": "wat is 2+2"}],
             "max_classification": "none",
@@ -230,6 +244,7 @@ async def test_a_blocked_call_never_reaches_the_ledger(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "gpt-4o",
             "messages": [{"role": "user", "content": f"BSN {BSN}"}],
             "max_classification": "bsn",
@@ -263,6 +278,7 @@ async def test_a_policy_can_add_a_length_limit(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "far more than ten characters"}],
             "max_classification": "none",
@@ -286,7 +302,9 @@ async def test_a_policy_cannot_switch_redaction_off(
     await mesh_session.commit()
     connection = await make_connection(guardrail_policy_id=policy.id)
 
-    body = (await _post(mesh_client, connection.id, max_classification="bsn")).json()
+    body = (
+        await _post(mesh_client, connection.id, connection.project_id, max_classification="bsn")
+    ).json()
     assert BSN not in body["content"]
     assert "<BSN>" in body["content"]
 
@@ -310,6 +328,7 @@ async def test_a_policy_can_require_an_output_shape(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "classify this"}],
             "max_classification": "none",

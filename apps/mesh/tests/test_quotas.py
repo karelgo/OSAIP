@@ -301,6 +301,7 @@ async def test_quota_block_is_429_with_its_own_slug(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "hi"}],
             "max_classification": "none",
@@ -344,6 +345,7 @@ async def test_warn_quota_returns_a_header_and_notifies_once(
 
     payload = {
         "connection_id": str(connection.id),
+        "project_id": str(connection.project_id),
         "model": "echo-1",
         "messages": [{"role": "user", "content": "hi"}],
         "max_classification": "none",
@@ -393,6 +395,7 @@ async def test_settled_reservation_matches_the_ledger_after_a_real_call(
             "/v1/complete",
             json={
                 "connection_id": str(connection.id),
+                "project_id": str(connection.project_id),
                 "model": "echo-1",
                 "messages": [{"role": "user", "content": "hello there"}],
                 "max_classification": "none",
@@ -434,6 +437,7 @@ async def test_no_notification_without_a_user(
         "/v1/complete",
         json={
             "connection_id": str(connection.id),
+            "project_id": str(connection.project_id),
             "model": "echo-1",
             "messages": [{"role": "user", "content": "hi"}],
             "max_classification": "none",
