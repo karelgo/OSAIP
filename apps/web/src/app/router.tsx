@@ -129,7 +129,7 @@ const projectIndexRoute = createRoute({
 
 // Settings tabs are deep-linkable (§6.7): ?tab= is validated here; the default
 // ("general") stays out of the URL.
-const SETTINGS_TABS = ["general", "members", "connections", "audit"] as const;
+const SETTINGS_TABS = ["general", "members", "connections", "llm", "usage", "audit"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 const projectSettingsRoute = createRoute({

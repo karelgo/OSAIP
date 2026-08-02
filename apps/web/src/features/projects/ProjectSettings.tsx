@@ -45,6 +45,8 @@ import { AlertTriangle, Archive, UserPlus } from "lucide-react";
 import { useState } from "react";
 import type { SettingsTab } from "../../app/router";
 import { ConnectionsTab } from "./ConnectionsTab";
+import { LlmConnectionsTab } from "./LlmConnectionsTab";
+import { UsageTab } from "./UsageTab";
 
 export function ProjectSettings() {
   const { key } = useParams({ from: "/_authed/_shell/p/$key/settings" });
@@ -100,6 +102,12 @@ export function ProjectSettings() {
           <TabsTrigger value="connections" data-testid="connections-tab">
             Connections
           </TabsTrigger>
+          <TabsTrigger value="llm" data-testid="llm-tab">
+            LLM
+          </TabsTrigger>
+          <TabsTrigger value="usage" data-testid="usage-tab">
+            Usage
+          </TabsTrigger>
           <TabsTrigger value="audit" data-testid="audit-tab">
             Audit
           </TabsTrigger>
@@ -112,6 +120,15 @@ export function ProjectSettings() {
         </TabsContent>
         <TabsContent value="connections">
           <ConnectionsTab projectKey={key} canManage={capabilities.can_manage_connections} />
+        </TabsContent>
+        <TabsContent value="llm">
+          <LlmConnectionsTab
+            projectKey={key}
+            canManage={capabilities.can_manage_connections}
+          />
+        </TabsContent>
+        <TabsContent value="usage">
+          <UsageTab projectKey={key} />
         </TabsContent>
         <TabsContent value="audit">
           <AuditTab projectKey={key} />
