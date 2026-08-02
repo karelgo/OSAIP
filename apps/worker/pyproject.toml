@@ -10,15 +10,19 @@ dependencies = [
     "osaip-api",
     "osaip-shared",
     "osaip-engine",
+    "osaip-guardrails",
     "sqlalchemy[asyncio]>=2.0.41",
     "asyncpg>=0.30",
     "pydantic-settings>=2.10",
+    # The worker calls the MESH over HTTP — never a provider SDK (§5b).
+    "httpx>=0.28",
 ]
 
 [tool.uv.sources]
 osaip-api = { workspace = true }
 osaip-shared = { workspace = true }
 osaip-engine = { workspace = true }
+osaip-guardrails = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

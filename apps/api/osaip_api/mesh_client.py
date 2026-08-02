@@ -45,6 +45,13 @@ async def call_mesh(
     purpose: str = "general",
     max_classification: str = "bijzonder",
     max_tokens: int = 512,
+    # Per-row build attribution: the ledger already stores these, and they are what
+    # makes §6.3(7) — "why is this cell what it is?" — answerable for a generated value.
+    job_id: uuid.UUID | None = None,
+    job_step_id: uuid.UUID | None = None,
+    trace_id: uuid.UUID | None = None,
+    row_key: str | None = None,
+    output_schema: dict[str, Any] | None = None,
     timeout_s: float = TEST_TIMEOUT_S,
 ) -> dict[str, Any]:
     """POST /v1/complete on the mesh. Raises MeshCallFailed on any non-2xx."""
@@ -62,6 +69,16 @@ async def call_mesh(
         payload["project_id"] = str(project_id)
     if user_id:
         payload["user_id"] = str(user_id)
+    if job_id:
+        payload["job_id"] = str(job_id)
+    if job_step_id:
+        payload["job_step_id"] = str(job_step_id)
+    if trace_id:
+        payload["trace_id"] = str(trace_id)
+    if row_key is not None:
+        payload["row_key"] = row_key
+    if output_schema is not None:
+        payload["output_schema"] = output_schema
 
     try:
         async with httpx.AsyncClient(timeout=timeout_s) as client:

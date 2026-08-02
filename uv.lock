@@ -1985,8 +1985,10 @@ version = "0.1.0"
 source = { editable = "apps/worker" }
 dependencies = [
     { name = "asyncpg" },
+    { name = "httpx" },
     { name = "osaip-api" },
     { name = "osaip-engine" },
+    { name = "osaip-guardrails" },
     { name = "osaip-shared" },
     { name = "pydantic-settings" },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -1995,8 +1997,10 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "asyncpg", specifier = ">=0.30" },
+    { name = "httpx", specifier = ">=0.28" },
     { name = "osaip-api", editable = "apps/api" },
     { name = "osaip-engine", editable = "packages/engine" },
+    { name = "osaip-guardrails", editable = "packages/guardrails" },
     { name = "osaip-shared", editable = "packages/shared" },
     { name = "pydantic-settings", specifier = ">=2.10" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.41" },
