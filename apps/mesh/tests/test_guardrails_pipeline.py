@@ -200,8 +200,10 @@ async def test_an_undeclared_classification_is_blocked_on_an_external_connection
 async def test_non_personal_data_may_go_external(
     mesh_client: httpx.AsyncClient, make_connection: Any
 ) -> None:
-    """The gate must not block everything — `none` routes anywhere. (It reaches the
-    provider seam, which is the 501 stub until the LiteLLM adapter lands.)"""
+    """The gate must not block everything — `none` routes anywhere.
+
+    It gets past CP-11 and into the provider, where this keyless test connection fails
+    for its own reasons. The point is that the answer is not 403."""
     connection = await make_connection(
         provider="openai", allowed_models=["gpt-4o"], data_residency="external"
     )
@@ -214,7 +216,8 @@ async def test_non_personal_data_may_go_external(
             "max_classification": "none",
         },
     )
-    assert response.status_code == 501
+    assert response.status_code != 403  # not blocked by CP-11
+    assert response.status_code == 502  # reached the provider adapter
 
 
 async def test_a_blocked_call_never_reaches_the_ledger(

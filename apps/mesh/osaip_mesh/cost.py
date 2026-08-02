@@ -57,12 +57,36 @@ def known_models() -> list[str]:
     return sorted(_price_table()[0])
 
 
-# ~4 characters per token is the usual English/Dutch rule of thumb. It is only ever used
-# to size a quota RESERVATION (which settles to the truth), never to bill or to report —
-# billing always uses the provider's reported usage. tiktoken lands with the LiteLLM
-# adapter, where a provider may omit usage and the ledger flags `tokens_estimated`.
+# An ESTIMATE, never a measurement. Used to size a quota reservation (which settles to
+# the truth) and as the fallback when a provider omits usage — where the ledger flags
+# `tokens_estimated` so nothing downstream mistakes it for exact.
+#
+# tiktoken when it is available, because the estimate is what a quota HOLDS: a count
+# that is off by 2x either blocks legitimate calls or lets a budget overshoot, and
+# characters-per-token drifts badly on Dutch, on code and on punctuation-heavy text.
 _CHARS_PER_TOKEN = 4
+_ENCODING_NAME = "o200k_base"
+
+
+@lru_cache(maxsize=1)
+def _encoder() -> Any | None:
+    """Loaded once, and never fatal: tiktoken arrives transitively with LiteLLM, so an
+    install without it must still be able to size a reservation."""
+    try:
+        import tiktoken
+
+        return tiktoken.get_encoding(_ENCODING_NAME)
+    except Exception:
+        # Includes the offline case: tiktoken fetches its BPE file on first use, and an
+        # air-gapped install has no network. Falling back is correct — this is an
+        # estimate, and the ledger never bills from it.
+        return None
 
 
 def estimate_tokens(text: str) -> int:
+    if not text:
+        return 0
+    encoder = _encoder()
+    if encoder is not None:
+        return max(1, len(encoder.encode(text, disallowed_special=())))
     return max(1, (len(text) + _CHARS_PER_TOKEN - 1) // _CHARS_PER_TOKEN)

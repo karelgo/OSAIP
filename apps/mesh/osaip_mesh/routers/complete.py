@@ -27,6 +27,7 @@ from osaip_mesh.pipeline import (
 )
 from osaip_mesh.providers.base import CompletionRequest, ProviderError
 from osaip_mesh.providers.echo import EchoProvider
+from osaip_mesh.providers.litellm_provider import LiteLLMProvider
 from osaip_mesh.quotas import QuotaExceeded
 
 router = APIRouter(prefix="/v1", tags=["mesh"])
@@ -133,14 +134,9 @@ def _build_provider(connection: LlmConnection, secret: str | None) -> Any:
                 slug="validation",
             )
         return EchoProvider(connection.base_config, secret)
-    # litellm-backed providers land in slice 5.
-    raise Problem(
-        501,
-        title="Provider not available yet",
-        detail=f"The {connection.provider!r} provider arrives with the LiteLLM adapter.",
-        hint="Use an echo connection until then.",
-        slug="not-implemented",
-    )
+    # Every real provider goes through the one LiteLLM adapter, so openai-compatible,
+    # anthropic and ollama connections share a single code path with echo (§5b).
+    return LiteLLMProvider(connection.provider, connection.base_config, secret)
 
 
 @router.post("/complete", response_model=CompleteOut)

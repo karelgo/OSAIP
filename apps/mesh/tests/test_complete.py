@@ -99,10 +99,13 @@ async def test_unknown_connection_404(mesh_client: httpx.AsyncClient) -> None:
     assert response.status_code == 404
 
 
-@pytest.mark.parametrize("provider", ["openai", "anthropic", "ollama"])
-async def test_litellm_providers_are_not_wired_yet(
+@pytest.mark.parametrize("provider", ["openai", "anthropic"])
+async def test_hosted_providers_route_to_the_litellm_adapter(
     mesh_client: httpx.AsyncClient, make_connection: Any, provider: str
 ) -> None:
+    """Since slice 5 these are wired. A keyless hosted connection is refused as a
+    configuration problem (502 provider-failed), NOT as a retryable outage — the
+    distinction is what stops a caller retrying forever."""
     connection = await make_connection(
         provider=provider, allowed_models=[], data_residency="external"
     )
@@ -112,7 +115,10 @@ async def test_litellm_providers_are_not_wired_yet(
             "connection_id": str(connection.id),
             "model": "some-model",
             "messages": [{"role": "user", "content": "hi"}],
-            "max_classification": "none",  # past the CP-11 gate, into the provider seam
+            "max_classification": "none",  # past the CP-11 gate, into the provider
         },
     )
-    assert response.status_code == 501  # arrives with the LiteLLM adapter (slice 5)
+    assert response.status_code == 502
+    body = response.json()
+    assert body["type"] == "urn:osaip:problem:provider-failed"
+    assert "no API key" in body["detail"]

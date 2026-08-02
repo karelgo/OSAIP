@@ -17,6 +17,13 @@ dependencies = [
     "pydantic>=2.11",
     "pydantic-settings>=2.10",
     "httpx>=0.28",
+    # Pinned EXACT: litellm moves fast and its provider-routing behaviour is the thing
+    # we depend on. It is wrapped behind our own Provider protocol (§10) and imported
+    # ONLY here — the §5b grep gate proves no other package touches a provider SDK.
+    "litellm==1.95.0",
+    # Token ESTIMATES only (quota sizing, and the fallback when a provider omits
+    # usage). Never used to bill: the ledger records the provider's reported counts.
+    "tiktoken>=0.13,<0.14",
 ]
 
 [tool.uv.sources]

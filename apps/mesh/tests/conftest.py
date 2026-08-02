@@ -2,6 +2,7 @@
 with lifespan managed, plus a client that carries the service token."""
 
 import os
+import sys
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from pathlib import Path
@@ -20,6 +21,11 @@ from osaip_api.models import LlmConnection, Project, User
 from osaip_mesh.app import create_mesh_app
 from osaip_mesh.config import MeshSettings
 from osaip_shared.ids import new_id
+
+# This tests dir is deliberately NOT a package (two `tests.conftest` modules would
+# collide with apps/api/tests). That also means sibling helper modules are not
+# importable by default, so put this directory on the path for `openai_stub`.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 API_DIR = Path(__file__).resolve().parents[2] / "api"
 TEST_TOKEN = "test-mesh-token"  # noqa: S105 — fixed test-only shared secret
