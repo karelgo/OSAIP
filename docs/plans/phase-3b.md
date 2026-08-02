@@ -15,8 +15,10 @@ in below and the scope is cut accordingly.
 1. **Baseline redaction rewrites the input.** `run_pre_stage` → `redact()` runs on every
    message and `PolicyConfig.redact_pii` cannot be switched off (BIO2 8.12, by design).
    So `llm_summarize` over a column of customer emails sends `<EMAIL>` to the model and
-   summarises placeholders. This is a real collision between 3a's guarantee and 3b's use
-   case, and it is a product decision — see Decision 1.
+   summarises placeholders. **Decided (2026-08-02): accept and be explicit.** 3a's
+   guarantee stays intact and unqualified; LLM recipes are for non-personal columns, and
+   the UI says so when redaction fires on a preview row — a user learns the limit from a
+   clear message, never from bad output.
 2. **The executor has no async seam.** `_do_build()` is a synchronous closure handed to
    `run_engine` (thread offload), and the only cancellation lever is a DuckDB
    `interrupt()`. A per-row loop of HTTP calls fits neither: it cannot run there, and an
@@ -38,7 +40,10 @@ in below and the scope is cut accordingly.
    miss cannot bypass it.
 2. **One compiler, four modes** — `llm_prompt`, `llm_classify`, `llm_extract`,
    `llm_summarize`. The AC says "identical code path"; four near-copies is how that
-   stops being true. Every interpolated cell goes through `untrusted_block()`.
+   stops being true. Every interpolated cell goes through `untrusted_block()`, and the
+   recipe preview reports when baseline redaction fired on a sampled row, so the
+   non-personal-columns limit is discovered from a message rather than from output that
+   summarises `<EMAIL>`.
 3. **An async step seam in the executor** (`_do_build` stays sync for engine steps; LLM
    steps get an async path), with:
    - **cooperative cancellation** that actually interrupts a row loop,
@@ -46,7 +51,11 @@ in below and the scope is cut accordingly.
      rows already paid for — P2's atomic write plus the requeue sweeper can otherwise
      re-bill the same step up to three times,
    - **bounded concurrency**, and deterministic output ordering independent of
-     completion order.
+     completion order,
+   - **partial-failure semantics**: a failed row yields a null output plus an error
+     column and the build succeeds; a quota block or a residency refusal aborts the step
+     instead, because continuing would only burn budget. The failed-row count surfaces
+     in the run drawer — a dataset with silent holes is worse than a failed build.
 4. **Budgets that work per build**: reserve once per step for the estimated total, then
    top up in batches as it runs, settling to actual. One lock acquisition per batch, not
    per row.
@@ -64,17 +73,22 @@ in below and the scope is cut accordingly.
    build; an over-budget build is refused by the API, not merely warned about in the
    dialog. An unpriced model must NOT estimate to zero — it is reported as unknown and
    requires explicit confirmation.
-9. **Prompt Studio**: prompts × models over a capped sample, comparison table, promote
-   → recipe. `purpose=studio`, never cached.
+9. **Prompt Studio**: prompts × models over a sample **hard-capped at 20 rows**,
+   comparison table, promote → recipe. `purpose=studio`, never cached. 20 is enough to
+   separate two prompts while keeping a 3×3 grid at 180 calls — experimenting must never
+   produce a surprising bill.
 10. **`row_key`**: defined as a non-identifying ordinal/hash — it is the one per-row
     field that bypasses redaction, and slice 7's SIEM export would carry it off-box.
 11. **SIEM/CEF export** of audit + ledger (CP-7's Phase-3 half).
 
 ## Out of scope (recorded, with target)
-**Hybrid `/search` embeddings — moved to its own phase slot.** The mesh has no embedding
-path at all: the `Provider` protocol exposes only `complete()`, there is no `/v1/embed`,
-no embedding pricing, and no pgvector column or backfill. That is phase-sized work, not
-half a slice. · Agents/tools + Trace Explorer (P6) · KB/RAG (P4) · semantic layer (P5) ·
+**Hybrid `/search` embeddings — moved to Phase 4, with KB/RAG (decided 2026-08-02).**
+The mesh has no embedding path at all: the `Provider` protocol exposes only
+`complete()`, there is no `/v1/embed`, no embedding pricing, and no pgvector column or
+backfill. That is phase-sized work rather than half a slice, and P4 needs it anyway — so
+it gets built once, there.
+
+Also out: Agents/tools + Trace Explorer (P6) · KB/RAG (P4) · semantic layer (P5) ·
 red-team eval SET (P7) · `/v1/stream` (P4) · BSN pseudonymisation service (P5).
 
 ## Endpoints
@@ -116,24 +130,18 @@ axe on the new surfaces.
 tests · a build cannot start without a preflight, and cannot exceed budget · an LLM build
 can be cancelled · no provider SDK outside `apps/mesh` · summary + stop (§9.4).
 
-## Decisions needed before slice 1
+## Decisions taken (2026-08-02, user-approved)
 
-**1. Redaction vs LLM input — the one that shapes the phase.**
-Baseline PII redaction is non-removable by design (BIO2 8.12). An LLM recipe over a
-column containing personal data therefore sends placeholders to the model.
-  a. **Accept and be explicit** — LLM recipes are for non-personal columns; the UI warns
-     when redaction fired on a preview row, so nobody discovers it from bad output.
-  b. **Reversible pseudonymisation** — replace with stable tokens, restore in the
-     response. Preserves utility, is a real design (token map, leak risk, ADR), and
-     re-opens a property 3a deliberately closed.
-  c. **Per-connection opt-out for local-only connections** — redaction stays mandatory
-     for `eu`/`external`, may be relaxed on `local`. Narrower than (b), still a change
-     to a "not configurable" guarantee.
-
-**2. Partial failure.** Failed row → null + error column, build succeeds (my proposal);
-or any row failure fails the build (safer data, wastes an expensive run).
-
-**3. Studio sample cap.** 20 rows hard-capped (my proposal) vs higher.
-
-**4. Scope confirmation.** I cut hybrid `/search` embeddings from 3b. Confirm, or say
-where it should land.
+1. **Redaction vs LLM input: accept and be explicit.** The non-removable baseline stays
+   non-removable. LLM recipes target non-personal columns; when redaction fires on a
+   preview row the UI says so plainly. No pseudonymisation, no per-connection opt-out —
+   both would re-open a property 3a deliberately closed, and neither is worth that for a
+   capability that has an honest alternative. Recorded in ADR-0010.
+2. **Partial failure: a failed row yields null + an error column; the build succeeds.**
+   One provider hiccup must not discard an expensive run. The gaps are made visible —
+   the error column plus a failed-row count in the run drawer — because a dataset with
+   silent holes is worse than a failed build.
+3. **Prompt Studio sample: 20 rows, hard-capped.** Not user-raisable; a raisable default
+   gets raised once and stays there.
+4. **Hybrid `/search` embeddings: Phase 4, with KB/RAG.** The embedding path gets built
+   once, where it is needed anyway.
